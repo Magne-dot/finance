@@ -1,0 +1,1020 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="theme-color" content="#0a0a0f"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<title>FOLIO — Portfolio Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --bg:        #0a0a0f;
+    --bg2:       #111118;
+    --bg3:       #18181f;
+    --border:    #2a2a35;
+    --border2:   #3a3a48;
+    --text:      #e8e8f0;
+    --text2:     #9898aa;
+    --text3:     #55556a;
+    --accent:    #00d4aa;
+    --accent2:   #0099ff;
+    --red:       #ff4466;
+    --green:     #00d4aa;
+    --yellow:    #ffcc00;
+    --mono:      'IBM Plex Mono', monospace;
+    --sans:      'IBM Plex Sans', sans-serif;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── SCANLINE OVERLAY ── */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px);
+    pointer-events: none;
+    z-index: 9999;
+  }
+
+  /* ── HEADER ── */
+  header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg2);
+    position: sticky; top: 0; z-index: 100;
+  }
+  .logo {
+    font-family: var(--mono);
+    font-size: 18px; font-weight: 600;
+    letter-spacing: 4px;
+    color: var(--accent);
+  }
+  .logo span { color: var(--text3); font-weight: 300; }
+  .header-right { display: flex; align-items: center; gap: 16px; }
+  .clock {
+    font-family: var(--mono); font-size: 12px; color: var(--text2);
+    letter-spacing: 1px;
+  }
+  .market-status {
+    display: flex; align-items: center; gap: 6px;
+    font-family: var(--mono); font-size: 11px;
+    padding: 4px 10px; border-radius: 2px;
+    background: var(--bg3); border: 1px solid var(--border);
+  }
+  .status-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--green);
+    animation: pulse 2s infinite;
+  }
+  .status-dot.closed { background: var(--text3); animation: none; }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+  /* ── MAIN LAYOUT ── */
+  main { max-width: 1400px; margin: 0 auto; padding: 24px; }
+
+  /* ── SUMMARY TILES ── */
+  .summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 24px;
+  }
+  .tile {
+    background: var(--bg2);
+    padding: 20px 24px;
+    cursor: pointer;
+    transition: background 0.15s;
+    position: relative;
+    overflow: hidden;
+  }
+  .tile::after {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0;
+    height: 2px; background: var(--accent); opacity: 0;
+    transition: opacity 0.15s;
+  }
+  .tile:hover { background: var(--bg3); }
+  .tile:hover::after { opacity: 1; }
+  .tile-label {
+    font-family: var(--mono); font-size: 10px;
+    letter-spacing: 2px; text-transform: uppercase;
+    color: var(--text3); margin-bottom: 8px;
+  }
+  .tile-value {
+    font-family: var(--mono); font-size: 22px; font-weight: 600;
+    color: var(--text); letter-spacing: -0.5px;
+    transition: opacity 0.2s;
+  }
+  .tile-value.positive { color: var(--green); }
+  .tile-value.negative { color: var(--red); }
+  .tile-sub {
+    font-family: var(--mono); font-size: 11px;
+    color: var(--text3); margin-top: 4px;
+  }
+  .tile-toggle-hint {
+    position: absolute; top: 12px; right: 12px;
+    font-family: var(--mono); font-size: 9px;
+    color: var(--text3); letter-spacing: 1px;
+  }
+
+  /* ── SECTION HEADER ── */
+  .section-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 12px;
+  }
+  .section-title {
+    font-family: var(--mono); font-size: 11px;
+    letter-spacing: 3px; text-transform: uppercase;
+    color: var(--text3);
+  }
+  .btn {
+    font-family: var(--mono); font-size: 11px; font-weight: 500;
+    letter-spacing: 1px; text-transform: uppercase;
+    padding: 8px 16px;
+    background: transparent; color: var(--accent);
+    border: 1px solid var(--accent);
+    border-radius: 2px; cursor: pointer;
+    transition: all 0.15s;
+  }
+  .btn:hover { background: var(--accent); color: var(--bg); }
+  .btn-ghost {
+    color: var(--text2); border-color: var(--border2);
+  }
+  .btn-ghost:hover { background: var(--bg3); color: var(--text); }
+  .btn-danger { color: var(--red); border-color: var(--red); }
+  .btn-danger:hover { background: var(--red); color: var(--bg); }
+
+  /* ── PORTFOLIO TABLE ── */
+  .table-wrap {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 24px;
+  }
+  table { width: 100%; border-collapse: collapse; }
+  thead th {
+    font-family: var(--mono); font-size: 10px;
+    letter-spacing: 2px; text-transform: uppercase;
+    color: var(--text3);
+    padding: 12px 16px;
+    text-align: right;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg3);
+    white-space: nowrap;
+  }
+  thead th:first-child { text-align: left; }
+  tbody tr {
+    border-bottom: 1px solid var(--border);
+    transition: background 0.1s;
+    cursor: pointer;
+  }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: var(--bg3); }
+  td {
+    font-family: var(--mono); font-size: 13px;
+    padding: 14px 16px;
+    text-align: right; color: var(--text2);
+    white-space: nowrap;
+  }
+  td:first-child { text-align: left; }
+  .td-ticker {
+    color: var(--text); font-weight: 600;
+    font-size: 14px; letter-spacing: 0.5px;
+  }
+  .td-name {
+    font-family: var(--sans); font-size: 12px;
+    color: var(--text3); display: block;
+    margin-top: 2px; font-weight: 300;
+  }
+  .td-exchange {
+    display: inline-block;
+    font-family: var(--mono); font-size: 9px;
+    letter-spacing: 1px;
+    padding: 2px 5px;
+    border: 1px solid var(--border2);
+    border-radius: 2px;
+    color: var(--text3);
+    margin-top: 3px;
+  }
+  .positive { color: var(--green) !important; }
+  .negative { color: var(--red) !important; }
+  .neutral  { color: var(--text2) !important; }
+  .loading-cell { color: var(--text3); animation: blink 1s step-end infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  .action-btns { display: flex; gap: 6px; justify-content: flex-end; }
+  .icon-btn {
+    background: none; border: 1px solid var(--border);
+    color: var(--text3); font-size: 12px;
+    padding: 4px 8px; border-radius: 2px; cursor: pointer;
+    font-family: var(--mono);
+    transition: all 0.1s;
+  }
+  .icon-btn:hover { border-color: var(--red); color: var(--red); }
+  .icon-btn.edit:hover { border-color: var(--accent2); color: var(--accent2); }
+
+  /* ── EMPTY STATE ── */
+  .empty-state {
+    padding: 60px 24px; text-align: center;
+  }
+  .empty-state .big { font-family: var(--mono); font-size: 40px; color: var(--text3); margin-bottom: 12px; }
+  .empty-state p { font-family: var(--sans); font-size: 14px; color: var(--text3); margin-bottom: 24px; }
+
+  /* ── MODAL ── */
+  .modal-overlay {
+    position: fixed; inset: 0; z-index: 500;
+    background: rgba(0,0,0,0.75);
+    display: flex; align-items: center; justify-content: center;
+    backdrop-filter: blur(4px);
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.2s;
+  }
+  .modal-overlay.open { opacity: 1; pointer-events: all; }
+  .modal {
+    background: var(--bg2);
+    border: 1px solid var(--border2);
+    border-radius: 4px;
+    width: 100%; max-width: 480px;
+    margin: 16px;
+    transform: translateY(20px);
+    transition: transform 0.2s;
+    overflow: hidden;
+  }
+  .modal-overlay.open .modal { transform: translateY(0); }
+  .modal-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg3);
+  }
+  .modal-title {
+    font-family: var(--mono); font-size: 12px;
+    letter-spacing: 3px; text-transform: uppercase;
+    color: var(--text);
+  }
+  .modal-close {
+    background: none; border: none; color: var(--text3);
+    font-size: 18px; cursor: pointer; line-height: 1;
+    transition: color 0.1s;
+  }
+  .modal-close:hover { color: var(--text); }
+  .modal-body { padding: 24px; }
+  .form-row { margin-bottom: 20px; }
+  .form-row:last-child { margin-bottom: 0; }
+  label {
+    display: block;
+    font-family: var(--mono); font-size: 10px;
+    letter-spacing: 2px; text-transform: uppercase;
+    color: var(--text3); margin-bottom: 8px;
+  }
+  input, select {
+    width: 100%;
+    background: var(--bg3);
+    border: 1px solid var(--border2);
+    border-radius: 2px;
+    color: var(--text);
+    font-family: var(--mono); font-size: 14px;
+    padding: 10px 14px;
+    outline: none;
+    transition: border-color 0.15s;
+    appearance: none;
+  }
+  input:focus, select:focus { border-color: var(--accent); }
+  input::placeholder { color: var(--text3); }
+  .form-hint {
+    font-family: var(--mono); font-size: 10px;
+    color: var(--text3); margin-top: 6px;
+  }
+  .form-row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .modal-footer {
+    padding: 16px 24px;
+    border-top: 1px solid var(--border);
+    display: flex; justify-content: flex-end; gap: 10px;
+    background: var(--bg3);
+  }
+
+  /* ── ACCOUNT BADGE ── */
+  .accounts-bar {
+    display: flex; gap: 8px; flex-wrap: wrap;
+    margin-bottom: 16px;
+  }
+  .account-badge {
+    font-family: var(--mono); font-size: 10px;
+    padding: 5px 12px; border-radius: 2px;
+    border: 1px solid var(--border2);
+    color: var(--text2); cursor: pointer;
+    transition: all 0.1s;
+    letter-spacing: 1px;
+    background: var(--bg2);
+  }
+  .account-badge.active {
+    border-color: var(--accent); color: var(--accent);
+    background: rgba(0,212,170,0.07);
+  }
+  .account-badge:hover { border-color: var(--text2); color: var(--text); }
+
+  /* ── FOOTER ── */
+  footer {
+    text-align: center; padding: 24px;
+    font-family: var(--mono); font-size: 10px;
+    color: var(--text3); letter-spacing: 2px;
+    border-top: 1px solid var(--border);
+    margin-top: 24px;
+  }
+
+  /* ── TOAST ── */
+  #toast {
+    position: fixed; bottom: 24px; right: 24px; z-index: 9000;
+    font-family: var(--mono); font-size: 12px; letter-spacing: 1px;
+    padding: 12px 20px;
+    background: var(--bg3); border: 1px solid var(--border2);
+    border-left: 3px solid var(--accent);
+    border-radius: 2px; color: var(--text);
+    transform: translateY(80px); opacity: 0;
+    transition: all 0.25s;
+    pointer-events: none;
+  }
+  #toast.show { transform: translateY(0); opacity: 1; }
+  #toast.error { border-left-color: var(--red); }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 700px) {
+    .hide-mobile { display: none !important; }
+    main { padding: 12px; }
+    header { padding: 12px 16px; }
+    .summary-grid { grid-template-columns: 1fr 1fr; }
+    .tile { padding: 14px 16px; }
+    .tile-value { font-size: 18px; }
+  }
+
+  /* ── REFRESH SPIN ── */
+  .spin { animation: spin 1s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .refresh-btn { display: inline-block; }
+
+  /* ── ABN AMRO special row ── */
+  .abn-row td:first-child::before {
+    content: '▲ ';
+    color: var(--yellow);
+    font-size: 10px;
+  }
+  .manual-badge {
+    display: inline-block;
+    font-family: var(--mono); font-size: 9px;
+    letter-spacing: 1px;
+    padding: 1px 5px;
+    border: 1px solid var(--yellow);
+    border-radius: 2px;
+    color: var(--yellow);
+    margin-left: 6px;
+    vertical-align: middle;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">FOLIO <span>// TRACKER</span></div>
+  <div class="header-right">
+    <div class="clock" id="clock">--:--:--</div>
+    <div class="market-status" id="marketStatus">
+      <div class="status-dot" id="statusDot"></div>
+      <span id="statusText">CHECKING</span>
+    </div>
+  </div>
+</header>
+
+<main>
+
+  <!-- SUMMARY TILES -->
+  <div class="summary-grid" id="summaryGrid">
+    <div class="tile" onclick="toggleTileMode(this,'portfolio')">
+      <div class="tile-label">Portfolio Value</div>
+      <div class="tile-value" id="tileTotal">€ —</div>
+      <div class="tile-sub" id="tileTotalSub">loading positions…</div>
+      <div class="tile-toggle-hint">CLICK TO TOGGLE</div>
+    </div>
+    <div class="tile" onclick="toggleTileMode(this,'daypl')">
+      <div class="tile-label">Day P&amp;L</div>
+      <div class="tile-value" id="tileDayPL">—</div>
+      <div class="tile-sub" id="tileDayPLSub">since open</div>
+      <div class="tile-toggle-hint">€ / %</div>
+    </div>
+    <div class="tile" onclick="toggleTileMode(this,'totalpl')">
+      <div class="tile-label">Total P&amp;L</div>
+      <div class="tile-value" id="tileTotalPL">—</div>
+      <div class="tile-sub" id="tileTotalPLSub">vs avg cost</div>
+      <div class="tile-toggle-hint">€ / %</div>
+    </div>
+    <div class="tile">
+      <div class="tile-label">Positions</div>
+      <div class="tile-value" id="tileCount">0</div>
+      <div class="tile-sub" id="tileCountSub">across 0 accounts</div>
+    </div>
+    <div class="tile">
+      <div class="tile-label">Last Refresh</div>
+      <div class="tile-value" id="tileRefresh" style="font-size:16px">—</div>
+      <div class="tile-sub">
+        <button class="btn btn-ghost" style="font-size:10px;padding:4px 10px;margin-top:6px" onclick="refreshAll()">
+          <span id="refreshIcon">↺</span> REFRESH
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ACCOUNTS FILTER + ADD -->
+  <div class="section-header">
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <div class="section-title">Positions</div>
+      <div class="accounts-bar" id="accountsBar">
+        <div class="account-badge active" data-account="ALL" onclick="filterAccount('ALL',this)">ALL</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-ghost" onclick="openImportModal()">↑ IMPORT CSV</button>
+      <button class="btn" onclick="openAddModal()">+ ADD POSITION</button>
+    </div>
+  </div>
+
+  <!-- TABLE -->
+  <div class="table-wrap">
+    <table id="posTable">
+      <thead>
+        <tr>
+          <th>Ticker / Name</th>
+          <th class="hide-mobile">Exchange</th>
+          <th>Qty</th>
+          <th>Avg Cost</th>
+          <th>Price</th>
+          <th>Mkt Value</th>
+          <th>Day P&amp;L</th>
+          <th>Total P&amp;L</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="posBody">
+        <tr>
+          <td colspan="9">
+            <div class="empty-state">
+              <div class="big">[  ]</div>
+              <p>No positions yet. Add your first holding to get started.</p>
+              <button class="btn" onclick="openAddModal()">+ ADD POSITION</button>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ABN AMRO INFO BOX -->
+  <div style="background:var(--bg2);border:1px solid var(--border);border-left:3px solid var(--yellow);border-radius:4px;padding:16px 20px;margin-bottom:24px">
+    <div style="font-family:var(--mono);font-size:10px;letter-spacing:2px;color:var(--yellow);margin-bottom:8px">▲ ABN AMRO — BEGELEID BELEGGEN</div>
+    <p style="font-family:var(--sans);font-size:13px;color:var(--text2);line-height:1.6">
+      ABN AMRO does not provide a public API for retail portfolio positions. To track your <strong style="color:var(--text)">Begeleid Beleggen (Risk 6)</strong> account, 
+      export a CSV from <em>Mijn ABN AMRO → Beleggen → Overzicht</em> and use the <strong style="color:var(--text)">Import CSV</strong> button above. 
+      Your positions will be imported as manual entries marked <span class="manual-badge">MANUAL</span> and will update prices via live data.
+    </p>
+  </div>
+
+</main>
+
+<footer>FOLIO v0.1 — DATA VIA YAHOO FINANCE — NOT FINANCIAL ADVICE</footer>
+
+<!-- ADD / EDIT MODAL -->
+<div class="modal-overlay" id="addModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modalTitle">Add Position</div>
+      <button class="modal-close" onclick="closeModal('addModal')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <label>Ticker Symbol</label>
+        <input type="text" id="inputTicker" placeholder="e.g. ASML.AS, AAPL, NVDA" autocomplete="off" style="text-transform:uppercase"/>
+        <div class="form-hint">Use .AS for Amsterdam, .L for London, .DE for Frankfurt</div>
+      </div>
+      <div class="form-row">
+        <label>Company Name (optional)</label>
+        <input type="text" id="inputName" placeholder="Will auto-fill if left empty"/>
+      </div>
+      <div class="form-row-2">
+        <div class="form-row" style="margin-bottom:0">
+          <label>Quantity (shares)</label>
+          <input type="number" id="inputQty" placeholder="0.00" min="0" step="any"/>
+        </div>
+        <div class="form-row" style="margin-bottom:0">
+          <label>Avg Cost Price (€)</label>
+          <input type="number" id="inputCost" placeholder="0.00" min="0" step="any"/>
+        </div>
+      </div>
+      <div class="form-row" style="margin-top:20px">
+        <label>Account / Broker</label>
+        <input type="text" id="inputAccount" placeholder="e.g. DEGIRO, ABN AMRO, SAXO" autocomplete="off" style="text-transform:uppercase"/>
+      </div>
+      <div class="form-row">
+        <label>Currency</label>
+        <select id="inputCurrency">
+          <option value="EUR">EUR — Euro</option>
+          <option value="USD">USD — US Dollar</option>
+          <option value="GBP">GBP — British Pound</option>
+          <option value="CHF">CHF — Swiss Franc</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('addModal')">CANCEL</button>
+      <button class="btn" id="saveBtn" onclick="savePosition()">SAVE POSITION</button>
+    </div>
+  </div>
+</div>
+
+<!-- IMPORT MODAL -->
+<div class="modal-overlay" id="importModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Import CSV</div>
+      <button class="modal-close" onclick="closeModal('importModal')">×</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-family:var(--sans);font-size:13px;color:var(--text2);line-height:1.6;margin-bottom:20px">
+        Upload a CSV file. Expected columns (in any order):<br/>
+        <code style="color:var(--accent);font-size:12px">ticker, name, quantity, avg_cost, account, currency</code>
+      </p>
+      <div class="form-row">
+        <label>CSV File</label>
+        <input type="file" id="csvFileInput" accept=".csv" style="cursor:pointer"/>
+      </div>
+      <div id="csvPreview" style="margin-top:16px;font-family:var(--mono);font-size:11px;color:var(--text3)"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('importModal')">CANCEL</button>
+      <button class="btn" onclick="importCSV()">IMPORT</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+/* ── STATE ── */
+let positions = [];     // [{id, ticker, name, qty, avgCost, account, currency, price, prevClose, loading}]
+let editingId = null;
+let tileModes = { portfolio: 'abs', daypl: 'abs', totalpl: 'abs' };
+let activeAccountFilter = 'ALL';
+let fxRates = { USD: 0.92, GBP: 1.17, CHF: 1.05, EUR: 1.0 };  // rough EUR equivalents
+const STORAGE_KEY = 'folio_positions_v1';
+
+/* ── PERSIST ── */
+function save() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(positions));
+}
+function load() {
+  try {
+    const d = localStorage.getItem(STORAGE_KEY);
+    if (d) positions = JSON.parse(d);
+  } catch(e) { positions = []; }
+}
+
+/* ── CLOCK & MARKET STATUS ── */
+function updateClock() {
+  const now = new Date();
+  document.getElementById('clock').textContent =
+    now.toLocaleTimeString('nl-NL', { hour12: false });
+
+  // Very rough: AEX 09:00-17:30 CET, NYSE 15:30-22:00 CET
+  const h = now.getHours(), m = now.getMinutes();
+  const mins = h * 60 + m;
+  const day = now.getDay();
+  const isWeekday = day > 0 && day < 6;
+  const aexOpen = isWeekday && mins >= 9*60 && mins < 17*60+30;
+  const nyseOpen = isWeekday && mins >= 15*60+30 && mins < 22*60;
+  const anyOpen = aexOpen || nyseOpen;
+  const dot = document.getElementById('statusDot');
+  const txt = document.getElementById('statusText');
+  if (anyOpen) {
+    dot.className = 'status-dot';
+    txt.textContent = aexOpen && nyseOpen ? 'AEX + NYSE' : aexOpen ? 'AEX OPEN' : 'NYSE OPEN';
+  } else {
+    dot.className = 'status-dot closed';
+    txt.textContent = 'CLOSED';
+  }
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+/* ── YAHOO FINANCE PROXY ── */
+// Use a CORS-friendly public proxy
+async function fetchQuote(ticker) {
+  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?interval=1d&range=2d`;
+  try {
+    const res = await fetch(url, { mode: 'cors' });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const json = await res.json();
+    const meta = json.chart.result[0].meta;
+    const price = meta.regularMarketPrice;
+    const prevClose = meta.chartPreviousClose || meta.previousClose || price;
+    const name = meta.longName || meta.shortName || ticker;
+    return { price, prevClose, name };
+  } catch(e) {
+    // fallback: allorigins proxy
+    try {
+      const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(
+        `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=1d&range=2d`
+      )}`;
+      const res2 = await fetch(proxyUrl);
+      const wrapper = await res2.json();
+      const json = JSON.parse(wrapper.contents);
+      const meta = json.chart.result[0].meta;
+      return {
+        price: meta.regularMarketPrice,
+        prevClose: meta.chartPreviousClose || meta.previousClose || meta.regularMarketPrice,
+        name: meta.longName || meta.shortName || ticker
+      };
+    } catch(e2) {
+      return null;
+    }
+  }
+}
+
+async function refreshAll() {
+  if (!positions.length) return;
+  const icon = document.getElementById('refreshIcon');
+  icon.classList.add('spin');
+  // mark all as loading
+  positions.forEach(p => { p.loading = true; });
+  renderTable();
+
+  for (const pos of positions) {
+    const q = await fetchQuote(pos.ticker);
+    if (q) {
+      pos.price = q.price;
+      pos.prevClose = q.prevClose;
+      if (!pos.name || pos.name === pos.ticker) pos.name = q.name;
+    }
+    pos.loading = false;
+    renderTable();
+    updateSummary();
+  }
+  save();
+  document.getElementById('tileRefresh').textContent = new Date().toLocaleTimeString('nl-NL',{hour12:false});
+  icon.classList.remove('spin');
+  toast('Prices updated');
+}
+
+/* ── SUMMARY ── */
+function toEUR(val, currency) {
+  return val * (fxRates[currency] || 1);
+}
+function updateSummary() {
+  const filtered = activeAccountFilter === 'ALL' ? positions : positions.filter(p => p.account === activeAccountFilter);
+  let totalVal = 0, totalCost = 0, totalDayPL = 0;
+  for (const p of filtered) {
+    if (!p.price) continue;
+    const val = toEUR(p.price * p.qty, p.currency);
+    const cost = toEUR(p.avgCost * p.qty, p.currency);
+    const dayPL = toEUR((p.price - (p.prevClose || p.price)) * p.qty, p.currency);
+    totalVal += val;
+    totalCost += cost;
+    totalDayPL += dayPL;
+  }
+  const totalPL = totalVal - totalCost;
+  const totalPLpct = totalCost ? (totalPL / totalCost * 100) : 0;
+  const dayPLpct = totalVal ? (totalDayPL / (totalVal - totalDayPL) * 100) : 0;
+
+  // portfolio tile
+  document.getElementById('tileTotal').textContent = fmt(totalVal, 'EUR', false);
+  document.getElementById('tileTotalSub').textContent = `${filtered.length} position${filtered.length !== 1 ? 's' : ''}`;
+
+  // day P&L
+  const dayEl = document.getElementById('tileDayPL');
+  dayEl.textContent = tileModes.daypl === 'abs' ? fmtPL(totalDayPL) : fmtPct(dayPLpct);
+  dayEl.className = 'tile-value ' + (totalDayPL >= 0 ? 'positive' : 'negative');
+
+  // total P&L
+  const plEl = document.getElementById('tileTotalPL');
+  plEl.textContent = tileModes.totalpl === 'abs' ? fmtPL(totalPL) : fmtPct(totalPLpct);
+  plEl.className = 'tile-value ' + (totalPL >= 0 ? 'positive' : 'negative');
+  document.getElementById('tileTotalPLSub').textContent = tileModes.totalpl === 'abs' ? fmtPct(totalPLpct) : fmtPL(totalPL);
+
+  // count
+  const accounts = [...new Set(positions.map(p => p.account).filter(Boolean))];
+  document.getElementById('tileCount').textContent = positions.length;
+  document.getElementById('tileCountSub').textContent = `across ${accounts.length} account${accounts.length !== 1 ? 's' : ''}`;
+
+  updateAccountsBar();
+}
+
+function toggleTileMode(el, key) {
+  tileModes[key] = tileModes[key] === 'abs' ? 'pct' : 'abs';
+  updateSummary();
+  el.style.background = 'var(--bg3)';
+  setTimeout(() => el.style.background = '', 200);
+}
+
+/* ── FORMAT HELPERS ── */
+function fmt(v, cur='EUR', showCur=true) {
+  if (isNaN(v) || v === null) return '—';
+  const s = Math.abs(v).toLocaleString('nl-NL', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const sym = { EUR: '€', USD: '$', GBP: '£', CHF: 'Fr' }[cur] || cur;
+  return (showCur ? sym + ' ' : '') + (v < 0 ? '-' : '') + s;
+}
+function fmtPL(v) {
+  if (isNaN(v)) return '—';
+  return (v >= 0 ? '+€ ' : '-€ ') + Math.abs(v).toLocaleString('nl-NL', {minimumFractionDigits:2,maximumFractionDigits:2});
+}
+function fmtPct(v) {
+  if (isNaN(v)) return '—';
+  return (v >= 0 ? '+' : '') + v.toFixed(2) + '%';
+}
+function plClass(v) { return v > 0 ? 'positive' : v < 0 ? 'negative' : 'neutral'; }
+
+/* ── TABLE RENDER ── */
+function renderTable() {
+  const body = document.getElementById('posBody');
+  const filtered = activeAccountFilter === 'ALL' ? positions : positions.filter(p => p.account === activeAccountFilter);
+
+  if (!filtered.length) {
+    body.innerHTML = `<tr><td colspan="9">
+      <div class="empty-state">
+        <div class="big">[  ]</div>
+        <p>No positions yet. Add your first holding to get started.</p>
+        <button class="btn" onclick="openAddModal()">+ ADD POSITION</button>
+      </div></td></tr>`;
+    return;
+  }
+
+  body.innerHTML = filtered.map(p => {
+    const price = p.price;
+    const prevClose = p.prevClose || price;
+    const mktVal = price ? p.qty * price : null;
+    const cost = p.qty * p.avgCost;
+    const totalPL = mktVal !== null ? mktVal - cost : null;
+    const totalPLpct = cost ? (totalPL / cost * 100) : 0;
+    const dayPL = price && prevClose ? (price - prevClose) * p.qty : null;
+    const dayPLpct = prevClose && p.qty ? ((price - prevClose) / prevClose * 100) : 0;
+
+    const priceCell = p.loading
+      ? `<td class="loading-cell">···</td>`
+      : `<td class="${plClass(price - (prevClose||price))}">${price ? fmt(price, p.currency) : '—'}</td>`;
+
+    const mktValCell = p.loading
+      ? `<td class="loading-cell">···</td>`
+      : `<td>${mktVal !== null ? fmt(mktVal, p.currency) : '—'}</td>`;
+
+    const dayPLCell = p.loading
+      ? `<td class="loading-cell">···</td>`
+      : `<td class="${plClass(dayPL)}">${dayPL !== null ? fmtPL(toEUR(dayPL, p.currency)) + '<br/><span style="font-size:10px;opacity:0.6">' + fmtPct(dayPLpct) + '</span>' : '—'}</td>`;
+
+    const totalPLCell = p.loading
+      ? `<td class="loading-cell">···</td>`
+      : `<td class="${plClass(totalPL)}">${totalPL !== null ? fmtPL(toEUR(totalPL, p.currency)) + '<br/><span style="font-size:10px;opacity:0.6">' + fmtPct(totalPLpct) + '</span>' : '—'}</td>`;
+
+    const abnClass = (p.account || '').toUpperCase().includes('ABN') ? 'abn-row' : '';
+    const manualBadge = p.manual ? '<span class="manual-badge">MANUAL</span>' : '';
+
+    return `<tr class="${abnClass}" onclick="rowClick('${p.id}')">
+      <td>
+        <span class="td-ticker">${p.ticker}${manualBadge}</span>
+        <span class="td-name">${p.name || ''}</span>
+        <span class="td-exchange">${p.account || 'N/A'}</span>
+      </td>
+      <td class="hide-mobile"><span style="color:var(--text3);font-size:11px">${getExchange(p.ticker)}</span></td>
+      <td>${p.qty.toLocaleString('nl-NL',{maximumFractionDigits:4})}</td>
+      <td>${fmt(p.avgCost, p.currency)}</td>
+      ${priceCell}
+      ${mktValCell}
+      ${dayPLCell}
+      ${totalPLCell}
+      <td onclick="event.stopPropagation()">
+        <div class="action-btns">
+          <button class="icon-btn edit" onclick="openEditModal('${p.id}')">✎</button>
+          <button class="icon-btn" onclick="deletePosition('${p.id}')">✕</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function getExchange(ticker) {
+  if (ticker.endsWith('.AS')) return 'AEX';
+  if (ticker.endsWith('.L')) return 'LSE';
+  if (ticker.endsWith('.DE')) return 'XETRA';
+  if (ticker.endsWith('.PA')) return 'EURONEXT';
+  if (ticker.endsWith('.SW')) return 'SIX';
+  if (ticker.endsWith('.MI')) return 'BORSA IT';
+  return 'NASDAQ/NYSE';
+}
+
+function rowClick(id) {
+  // future: open chart panel
+  toast('Chart view coming in v0.2 →');
+}
+
+/* ── ACCOUNTS BAR ── */
+function updateAccountsBar() {
+  const bar = document.getElementById('accountsBar');
+  const accounts = [...new Set(positions.map(p => p.account).filter(Boolean))];
+  const existing = [...bar.querySelectorAll('[data-account]')].map(el => el.dataset.account);
+  accounts.forEach(acc => {
+    if (!existing.includes(acc)) {
+      const badge = document.createElement('div');
+      badge.className = 'account-badge';
+      badge.dataset.account = acc;
+      badge.textContent = acc;
+      badge.onclick = () => filterAccount(acc, badge);
+      bar.appendChild(badge);
+    }
+  });
+}
+function filterAccount(acc, el) {
+  activeAccountFilter = acc;
+  document.querySelectorAll('.account-badge').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  renderTable();
+  updateSummary();
+}
+
+/* ── MODAL ── */
+function openAddModal() {
+  editingId = null;
+  document.getElementById('modalTitle').textContent = 'ADD POSITION';
+  document.getElementById('saveBtn').textContent = 'SAVE POSITION';
+  ['inputTicker','inputName','inputQty','inputCost','inputAccount'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('inputCurrency').value = 'EUR';
+  openModal('addModal');
+}
+function openEditModal(id) {
+  const p = positions.find(x => x.id === id);
+  if (!p) return;
+  editingId = id;
+  document.getElementById('modalTitle').textContent = 'EDIT POSITION';
+  document.getElementById('saveBtn').textContent = 'UPDATE';
+  document.getElementById('inputTicker').value = p.ticker;
+  document.getElementById('inputName').value = p.name || '';
+  document.getElementById('inputQty').value = p.qty;
+  document.getElementById('inputCost').value = p.avgCost;
+  document.getElementById('inputAccount').value = p.account || '';
+  document.getElementById('inputCurrency').value = p.currency || 'EUR';
+  openModal('addModal');
+}
+function openImportModal() { openModal('importModal'); }
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+document.querySelectorAll('.modal-overlay').forEach(overlay => {
+  overlay.addEventListener('click', e => { if (e.target === overlay) closeModal(overlay.id); });
+});
+
+/* ── SAVE POSITION ── */
+async function savePosition() {
+  const ticker = document.getElementById('inputTicker').value.trim().toUpperCase();
+  const name   = document.getElementById('inputName').value.trim();
+  const qty    = parseFloat(document.getElementById('inputQty').value);
+  const cost   = parseFloat(document.getElementById('inputCost').value);
+  const account = document.getElementById('inputAccount').value.trim().toUpperCase();
+  const currency = document.getElementById('inputCurrency').value;
+
+  if (!ticker || isNaN(qty) || isNaN(cost)) { toast('Please fill all required fields', true); return; }
+
+  const btn = document.getElementById('saveBtn');
+  btn.textContent = '···'; btn.disabled = true;
+
+  if (editingId) {
+    const p = positions.find(x => x.id === editingId);
+    Object.assign(p, { ticker, name: name || p.name, qty, avgCost: cost, account, currency });
+    p.loading = true;
+    closeModal('addModal');
+    renderTable(); updateSummary();
+    const q = await fetchQuote(ticker);
+    if (q) { p.price = q.price; p.prevClose = q.prevClose; if (!name) p.name = q.name; }
+    p.loading = false;
+  } else {
+    const id = 'pos_' + Date.now();
+    const pos = { id, ticker, name, qty, avgCost: cost, account, currency, price: null, prevClose: null, loading: true };
+    positions.push(pos);
+    closeModal('addModal');
+    renderTable(); updateSummary();
+    const q = await fetchQuote(ticker);
+    if (q) { pos.price = q.price; pos.prevClose = q.prevClose; if (!name) pos.name = q.name; }
+    pos.loading = false;
+  }
+
+  btn.textContent = editingId ? 'UPDATE' : 'SAVE POSITION'; btn.disabled = false;
+  save(); renderTable(); updateSummary();
+  toast(editingId ? 'Position updated' : `${ticker} added`);
+}
+
+/* ── DELETE ── */
+function deletePosition(id) {
+  const p = positions.find(x => x.id === id);
+  if (!p) return;
+  if (!confirm(`Remove ${p.ticker} from portfolio?`)) return;
+  positions = positions.filter(x => x.id !== id);
+  save(); renderTable(); updateSummary();
+  toast(`${p.ticker} removed`);
+}
+
+/* ── CSV IMPORT ── */
+function openImportModal() {
+  document.getElementById('csvPreview').innerHTML = '';
+  document.getElementById('csvFileInput').value = '';
+  openModal('importModal');
+}
+
+document.getElementById('csvFileInput').addEventListener('change', function() {
+  const file = this.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const lines = e.target.result.split('\n').slice(0,4);
+    document.getElementById('csvPreview').innerHTML =
+      '<div style="color:var(--text3);margin-bottom:4px">PREVIEW (first 3 rows):</div>' +
+      lines.map(l => `<div style="margin:2px 0;color:var(--accent2)">${l}</div>`).join('');
+  };
+  reader.readAsText(file);
+});
+
+async function importCSV() {
+  const file = document.getElementById('csvFileInput').files[0];
+  if (!file) { toast('Please select a CSV file', true); return; }
+  const text = await file.text();
+  const lines = text.trim().split('\n');
+  const headers = lines[0].toLowerCase().split(',').map(h => h.trim().replace(/"/g,''));
+  const getIdx = key => headers.findIndex(h => h.includes(key));
+  const ti = getIdx('ticker'), ni = getIdx('name'), qi = getIdx('qty') !== -1 ? getIdx('qty') : getIdx('quant'),
+        ci = getIdx('cost'), ai = getIdx('account'), curi = getIdx('currency');
+
+  if (ti === -1 || qi === -1 || ci === -1) { toast('CSV must have: ticker, quantity/qty, avg_cost', true); return; }
+
+  let added = 0;
+  for (let i = 1; i < lines.length; i++) {
+    const cols = lines[i].split(',').map(c => c.trim().replace(/"/g,''));
+    const ticker = (cols[ti] || '').toUpperCase();
+    if (!ticker) continue;
+    const qty = parseFloat(cols[qi]);
+    const cost = parseFloat(cols[ci]);
+    if (isNaN(qty) || isNaN(cost)) continue;
+    const id = 'pos_' + Date.now() + '_' + i;
+    positions.push({
+      id, ticker,
+      name: ni !== -1 ? cols[ni] : '',
+      qty, avgCost: cost,
+      account: ai !== -1 ? (cols[ai]||'').toUpperCase() : 'IMPORTED',
+      currency: curi !== -1 ? cols[curi] : 'EUR',
+      price: null, prevClose: null, loading: false, manual: true
+    });
+    added++;
+  }
+  save(); closeModal('importModal'); renderTable(); updateSummary();
+  toast(`Imported ${added} positions`);
+  if (added) setTimeout(refreshAll, 500);
+}
+
+/* ── TOAST ── */
+function toast(msg, err=false) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'show' + (err ? ' error' : '');
+  clearTimeout(el._t);
+  el._t = setTimeout(() => el.className = '', 3000);
+}
+
+/* ── ENTER KEY IN MODAL ── */
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    closeModal('addModal'); closeModal('importModal');
+  }
+  if (e.key === 'Enter' && document.getElementById('addModal').classList.contains('open')) {
+    savePosition();
+  }
+});
+
+/* ── AUTO REFRESH every 2 min ── */
+setInterval(() => { if (positions.length) refreshAll(); }, 2 * 60 * 1000);
+
+/* ── INIT ── */
+load();
+renderTable();
+updateSummary();
+if (positions.length) refreshAll();
+</script>
+</body>
+</html>
