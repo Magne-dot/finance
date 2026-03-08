@@ -1,0 +1,1360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="theme-color" content="#0a0a0f"/>
+<title>FOLIO — AI Analyst</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#0a0a0f;--bg2:#111118;--bg3:#18181f;--bg4:#1e1e28;
+  --border:#2a2a35;--border2:#3a3a48;
+  --text:#e8e8f0;--text2:#9898aa;--text3:#55556a;
+  --accent:#00d4aa;--accent2:#0099ff;
+  --red:#ff4466;--green:#00d4aa;--yellow:#ffcc00;
+  --purple:#a78bfa;--orange:#fb923c;
+  --mono:'IBM Plex Mono',monospace;--sans:'IBM Plex Sans',sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.03) 2px,rgba(0,0,0,.03) 4px);pointer-events:none;z-index:9999}
+
+/* ── HEADER ── */
+header{display:flex;align-items:center;justify-content:space-between;padding:16px 24px;border-bottom:1px solid var(--border);background:var(--bg2);position:sticky;top:0;z-index:100}
+.logo{font-family:var(--mono);font-size:16px;font-weight:600;letter-spacing:4px;color:var(--accent)}
+.logo span{color:var(--text3);font-weight:300}
+.logo-sub{font-family:var(--mono);font-size:10px;color:var(--purple);letter-spacing:3px;margin-top:2px}
+.hright{display:flex;align-items:center;gap:12px}
+.back-btn{font-family:var(--mono);font-size:11px;letter-spacing:1px;padding:6px 14px;background:transparent;color:var(--text2);border:1px solid var(--border2);border-radius:2px;cursor:pointer;text-decoration:none;transition:all .15s}
+.back-btn:hover{color:var(--text);border-color:var(--text2)}
+.api-status{display:flex;gap:8px;align-items:center}
+.api-chip{font-family:var(--mono);font-size:9px;letter-spacing:1px;padding:3px 8px;border-radius:2px;border:1px solid var(--border2);color:var(--text3)}
+.api-chip.ok{border-color:var(--green);color:var(--green)}
+.api-chip.miss{border-color:var(--red);color:var(--red)}
+
+/* ── NAV TABS ── */
+.nav-tabs{display:flex;border-bottom:1px solid var(--border);background:var(--bg2);padding:0 24px;overflow-x:auto}
+.nav-tab{font-family:var(--mono);font-size:11px;letter-spacing:2px;text-transform:uppercase;padding:12px 20px;color:var(--text3);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;white-space:nowrap;margin-bottom:-1px}
+.nav-tab:hover{color:var(--text2)}
+.nav-tab.act{color:var(--purple);border-bottom-color:var(--purple)}
+
+main{max-width:1200px;margin:0 auto;padding:24px}
+.view{display:none}.view.act{display:block}
+
+/* ── BUTTONS ── */
+.btn{font-family:var(--mono);font-size:11px;font-weight:500;letter-spacing:1px;text-transform:uppercase;padding:10px 20px;background:transparent;color:var(--accent);border:1px solid var(--accent);border-radius:2px;cursor:pointer;transition:all .15s}
+.btn:hover{background:var(--accent);color:var(--bg)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn.purple{color:var(--purple);border-color:var(--purple)}.btn.purple:hover{background:var(--purple);color:var(--bg)}
+.btn.ghost{color:var(--text2);border-color:var(--border2)}.btn.ghost:hover{background:var(--bg3);color:var(--text)}
+.btn.sm{padding:6px 12px;font-size:10px}
+.btn.danger{color:var(--red);border-color:var(--red)}.btn.danger:hover{background:var(--red);color:var(--bg)}
+
+/* ── SECTION HEADERS ── */
+.sh{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px}
+.stitle{font-family:var(--mono);font-size:11px;letter-spacing:3px;text-transform:uppercase;color:var(--text3)}
+
+/* ── CARDS ── */
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:4px;padding:20px;margin-bottom:16px}
+.card.purple-accent{border-left:3px solid var(--purple)}
+.card.green-accent{border-left:3px solid var(--green)}
+.card.red-accent{border-left:3px solid var(--red)}
+.card.yellow-accent{border-left:3px solid var(--yellow)}
+.card.blue-accent{border-left:3px solid var(--accent2)}
+
+/* ── ANALYZE TAB ── */
+.search-bar{display:flex;gap:10px;margin-bottom:20px}
+.search-input{flex:1;background:var(--bg3);border:1px solid var(--border2);border-radius:2px;color:var(--text);font-family:var(--mono);font-size:15px;padding:12px 16px;outline:none;transition:border-color .15s}
+.search-input:focus{border-color:var(--purple)}
+.search-input::placeholder{color:var(--text3)}
+
+/* ── REPORT OUTPUT ── */
+.report-wrap{background:var(--bg2);border:1px solid var(--border);border-radius:4px;overflow:hidden}
+.report-header{background:var(--bg3);border-bottom:1px solid var(--border);padding:16px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
+.report-ticker{font-family:var(--mono);font-size:22px;font-weight:600;color:var(--text);letter-spacing:1px}
+.report-name{font-family:var(--sans);font-size:13px;color:var(--text3);margin-top:2px}
+.score-badge{display:flex;align-items:center;gap:6px}
+.score-ring{width:56px;height:56px;position:relative;flex-shrink:0}
+.score-ring svg{transform:rotate(-90deg)}
+.score-ring .score-num{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:14px;font-weight:600}
+.score-label{font-family:var(--mono);font-size:9px;letter-spacing:2px;color:var(--text3);text-transform:uppercase}
+
+.report-body{padding:20px}
+.report-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px;margin-bottom:20px}
+.metric-group{background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:14px}
+.metric-group-title{font-family:var(--mono);font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--text3);margin-bottom:12px}
+.metric-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:8px}
+.metric-row:last-child{margin-bottom:0}
+.metric-label{font-family:var(--mono);font-size:11px;color:var(--text3)}
+.metric-val{font-family:var(--mono);font-size:12px;font-weight:500;color:var(--text);text-align:right}
+.metric-val.good{color:var(--green)}.metric-val.bad{color:var(--red)}.metric-val.mid{color:var(--yellow)}
+.metric-bar{height:3px;background:var(--border2);border-radius:2px;margin-top:4px;overflow:hidden}
+.metric-bar-fill{height:100%;border-radius:2px;transition:width .4s}
+
+/* ── AI NARRATIVE ── */
+.ai-narrative{font-family:var(--sans);font-size:14px;color:var(--text2);line-height:1.8;white-space:pre-wrap;word-break:break-word}
+.ai-narrative strong{color:var(--text);font-weight:600}
+.ai-narrative em{color:var(--accent);font-style:normal}
+
+/* streaming cursor */
+.cursor{display:inline-block;width:8px;height:14px;background:var(--purple);animation:blink .7s step-end infinite;vertical-align:middle;margin-left:2px}
+@keyframes blink{50%{opacity:0}}
+
+/* verdict chips */
+.verdict-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.verdict{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:11px;letter-spacing:1px;text-transform:uppercase;padding:6px 14px;border-radius:2px;border:1px solid;font-weight:600}
+.verdict.buy{color:var(--green);border-color:var(--green);background:rgba(0,212,170,.08)}
+.verdict.hold{color:var(--yellow);border-color:var(--yellow);background:rgba(255,204,0,.08)}
+.verdict.sell{color:var(--red);border-color:var(--red);background:rgba(255,68,102,.08)}
+.verdict.watch{color:var(--accent2);border-color:var(--accent2);background:rgba(0,153,255,.08)}
+
+/* factor bars */
+.factor-bars{display:grid;gap:8px;margin-bottom:20px}
+.fbar-row{display:grid;grid-template-columns:140px 1fr 40px;align-items:center;gap:10px}
+.fbar-label{font-family:var(--mono);font-size:10px;color:var(--text3);letter-spacing:1px}
+.fbar-track{height:6px;background:var(--border2);border-radius:3px;overflow:hidden}
+.fbar-fill{height:100%;border-radius:3px;transition:width .6s cubic-bezier(.4,0,.2,1)}
+.fbar-score{font-family:var(--mono);font-size:11px;font-weight:600;text-align:right}
+
+/* catalyst chips */
+.catalyst-list{display:flex;flex-direction:column;gap:8px}
+.catalyst-item{background:var(--bg3);border:1px solid var(--border);border-radius:2px;padding:10px 14px;display:flex;align-items:flex-start;gap:10px}
+.catalyst-icon{font-size:16px;flex-shrink:0;margin-top:1px}
+.catalyst-text{font-family:var(--sans);font-size:13px;color:var(--text2);line-height:1.5}
+.catalyst-text strong{color:var(--text);font-weight:500}
+.catalyst-date{font-family:var(--mono);font-size:10px;color:var(--text3);margin-top:3px}
+
+/* ── SCREENER TAB ── */
+.screener-controls{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:20px}
+.ctrl-group{background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:14px}
+.ctrl-label{font-family:var(--mono);font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--text3);margin-bottom:10px}
+.ctrl-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.ctrl-row:last-child{margin-bottom:0}
+.ctrl-name{font-family:var(--mono);font-size:11px;color:var(--text2)}
+select,input[type=number]{background:var(--bg);border:1px solid var(--border2);border-radius:2px;color:var(--text);font-family:var(--mono);font-size:11px;padding:5px 8px;outline:none;-webkit-appearance:none;appearance:none}
+select:focus,input[type=number]:focus{border-color:var(--purple)}
+.screen-results{display:grid;gap:12px}
+.screen-card{background:var(--bg2);border:1px solid var(--border);border-radius:4px;padding:16px;display:grid;grid-template-columns:1fr auto;gap:12px;align-items:start;cursor:pointer;transition:background .15s}
+.screen-card:hover{background:var(--bg3)}
+.screen-card-score{display:flex;flex-direction:column;align-items:center;gap:4px}
+.big-score{font-family:var(--mono);font-size:28px;font-weight:600;line-height:1}
+.score-tag{font-family:var(--mono);font-size:9px;letter-spacing:2px}
+.screen-ticker{font-family:var(--mono);font-size:16px;font-weight:600;color:var(--text)}
+.screen-name{font-family:var(--sans);font-size:12px;color:var(--text3);margin-top:2px}
+.screen-chips{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+.chip{font-family:var(--mono);font-size:9px;letter-spacing:1px;padding:2px 7px;border-radius:2px;border:1px solid var(--border2);color:var(--text3)}
+.chip.green{border-color:var(--green);color:var(--green)}
+.chip.red{border-color:var(--red);color:var(--red)}
+.chip.yellow{border-color:var(--yellow);color:var(--yellow)}
+.chip.purple{border-color:var(--purple);color:var(--purple)}
+.chip.blue{border-color:var(--accent2);color:var(--accent2)}
+
+/* ── PORTFOLIO ADVISOR TAB ── */
+.advice-grid{display:grid;gap:12px}
+.advice-card{background:var(--bg2);border:1px solid var(--border);border-radius:4px;overflow:hidden}
+.advice-card-header{background:var(--bg3);border-bottom:1px solid var(--border);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;gap:8px}
+.advice-card-ticker{font-family:var(--mono);font-size:14px;font-weight:600;color:var(--text)}
+.advice-card-body{padding:16px}
+
+/* ── SETTINGS TAB ── */
+.settings-grid{display:grid;gap:16px;max-width:600px}
+.settings-card{background:var(--bg2);border:1px solid var(--border);border-radius:4px;padding:20px}
+.settings-title{font-family:var(--mono);font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--text3);margin-bottom:16px}
+.setting-row{display:flex;flex-direction:column;gap:6px;margin-bottom:16px}
+.setting-row:last-child{margin-bottom:0}
+.setting-label{font-family:var(--mono);font-size:11px;color:var(--text2);letter-spacing:1px}
+.setting-hint{font-family:var(--mono);font-size:10px;color:var(--text3)}
+.setting-input{background:var(--bg3);border:1px solid var(--border2);border-radius:2px;color:var(--text);font-family:var(--mono);font-size:13px;padding:10px 14px;outline:none;transition:border-color .15s;width:100%}
+.setting-input:focus{border-color:var(--purple)}
+.setting-input[type=password]{letter-spacing:2px}
+
+/* ── LOADING / EMPTY STATES ── */
+.loading-state{text-align:center;padding:48px 24px}
+.loading-state .big{font-family:var(--mono);font-size:32px;color:var(--purple);margin-bottom:12px}
+.loading-state p{font-family:var(--sans);font-size:14px;color:var(--text3)}
+.loading-dots span{animation:ldots 1.4s infinite;display:inline-block}
+.loading-dots span:nth-child(2){animation-delay:.2s}
+.loading-dots span:nth-child(3){animation-delay:.4s}
+@keyframes ldots{0%,80%,100%{opacity:.2;transform:scale(.8)}40%{opacity:1;transform:scale(1)}}
+
+.progress-bar{height:2px;background:var(--border2);border-radius:1px;overflow:hidden;margin-top:12px}
+.progress-fill{height:100%;background:var(--purple);transition:width .3s;border-radius:1px}
+
+/* ── TOAST ── */
+#toast{position:fixed;bottom:20px;right:20px;z-index:9000;font-family:var(--mono);font-size:11px;letter-spacing:1px;padding:10px 18px;background:var(--bg3);border:1px solid var(--border2);border-left:3px solid var(--accent);border-radius:2px;color:var(--text);transform:translateY(70px);opacity:0;transition:all .25s;pointer-events:none;max-width:320px}
+#toast.show{transform:translateY(0);opacity:1}
+#toast.err{border-left-color:var(--red)}
+
+/* ── MISC ── */
+hr.div{border:none;border-top:1px solid var(--border);margin:16px 0}
+.tag-universe{display:inline-flex;align-items:center;gap:4px;font-family:var(--mono);font-size:9px;letter-spacing:1px;padding:2px 6px;border:1px solid var(--border2);border-radius:2px;color:var(--text3);margin:2px}
+.spin{animation:spin 1s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}
+@media(max-width:700px){main{padding:12px}header{padding:12px 16px}.nav-tabs{padding:0 12px}.nav-tab{padding:10px 12px;font-size:10px}.report-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <div class="logo">FOLIO <span>// </span><span style="color:var(--purple)">AI ANALYST</span></div>
+    <div class="logo-sub">POWERED BY CLAUDE</div>
+  </div>
+  <div class="hright">
+    <div class="api-status" id="apiStatus"></div>
+    <a href="index.html" class="back-btn">← PORTFOLIO</a>
+  </div>
+</header>
+
+<div class="nav-tabs">
+  <div class="nav-tab act" onclick="switchTab('analyze',this)">🔍 ANALYZE STOCK</div>
+  <div class="nav-tab" onclick="switchTab('screener',this)">📡 SCREENER</div>
+  <div class="nav-tab" onclick="switchTab('advisor',this)">🎯 PORTFOLIO ADVISOR</div>
+  <div class="nav-tab" onclick="switchTab('settings',this)">⚙ SETTINGS</div>
+</div>
+
+<main>
+
+<!-- ════════════════════════════════════
+     TAB 1: ANALYZE A STOCK
+════════════════════════════════════ -->
+<div class="view act" id="tabAnalyze">
+
+  <div class="card purple-accent" style="margin-bottom:20px">
+    <div style="font-family:var(--mono);font-size:10px;letter-spacing:2px;color:var(--purple);margin-bottom:6px">AI STOCK ANALYZER</div>
+    <p style="font-family:var(--sans);font-size:13px;color:var(--text2);line-height:1.6">Enter any ticker for a full AI-powered fundamental analysis. Claude fetches real financial data, scores the stock across 6 dimensions, detects upcoming catalysts, and gives a plain-language verdict with reasoning.</p>
+  </div>
+
+  <div class="search-bar">
+    <input class="search-input" id="analyzeInput" placeholder="Enter ticker — e.g. ASML.AS · NVDA · MSFT · MC.PA" autocomplete="off" style="text-transform:uppercase" onkeydown="if(event.key==='Enter')runAnalysis()"/>
+    <button class="btn purple" id="analyzeBtn" onclick="runAnalysis()">ANALYZE →</button>
+  </div>
+
+  <!-- quick picks -->
+  <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:24px" id="quickPicks">
+    <div style="font-family:var(--mono);font-size:10px;color:var(--text3);letter-spacing:1px;padding:4px 0;margin-right:4px">QUICK:</div>
+  </div>
+
+  <div id="analyzeOutput">
+    <div class="loading-state" id="analyzeEmpty">
+      <div class="big">◎</div>
+      <p>Enter a ticker above to generate a full analysis report.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════
+     TAB 2: SCREENER
+════════════════════════════════════ -->
+<div class="view" id="tabScreener">
+
+  <div class="card blue-accent" style="margin-bottom:20px">
+    <div style="font-family:var(--mono);font-size:10px;letter-spacing:2px;color:var(--accent2);margin-bottom:6px">AI STOCK SCREENER</div>
+    <p style="font-family:var(--sans);font-size:13px;color:var(--text2);line-height:1.6">Describe what you're looking for in plain language, or configure the filters below. Claude will identify stocks matching your criteria across your selected universes, ranked by composite score.</p>
+  </div>
+
+  <!-- Natural language screener prompt -->
+  <div style="display:flex;gap:10px;margin-bottom:16px">
+    <input class="search-input" id="screenPrompt" placeholder="e.g. 'profitable tech companies with strong dividends trading below fair value'" style="font-size:13px"/>
+    <button class="btn" id="screenBtn" onclick="runScreener()">SCREEN →</button>
+  </div>
+
+  <!-- Filter controls -->
+  <div class="screener-controls" id="screenerControls">
+    <div class="ctrl-group">
+      <div class="ctrl-label">Universe</div>
+      <div class="ctrl-row"><span class="ctrl-name">S&P 500</span><input type="checkbox" id="uSP500" checked/></div>
+      <div class="ctrl-row"><span class="ctrl-name">NASDAQ 100</span><input type="checkbox" id="uNDX" checked/></div>
+      <div class="ctrl-row"><span class="ctrl-name">AEX / Europe</span><input type="checkbox" id="uAEX" checked/></div>
+      <div class="ctrl-row"><span class="ctrl-name">Dividend Aristocrats</span><input type="checkbox" id="uDIV" checked/></div>
+      <div class="ctrl-row"><span class="ctrl-name">Small/Mid Cap</span><input type="checkbox" id="uSMID" checked/></div>
+    </div>
+    <div class="ctrl-group">
+      <div class="ctrl-label">Valuation</div>
+      <div class="ctrl-row"><span class="ctrl-name">Max P/E</span><input type="number" id="fPE" value="35" style="width:70px"/></div>
+      <div class="ctrl-row"><span class="ctrl-name">Max P/B</span><input type="number" id="fPB" value="10" style="width:70px"/></div>
+      <div class="ctrl-row"><span class="ctrl-name">Min Div Yield %</span><input type="number" id="fYield" value="0" step="0.1" style="width:70px"/></div>
+    </div>
+    <div class="ctrl-group">
+      <div class="ctrl-label">Quality</div>
+      <div class="ctrl-row"><span class="ctrl-name">Min ROE %</span><input type="number" id="fROE" value="10" style="width:70px"/></div>
+      <div class="ctrl-row"><span class="ctrl-name">Min Revenue Growth %</span><input type="number" id="fRevGrowth" value="5" style="width:70px"/></div>
+      <div class="ctrl-row"><span class="ctrl-name">Max Debt/Equity</span><input type="number" id="fDE" value="2" step="0.1" style="width:70px"/></div>
+    </div>
+    <div class="ctrl-group">
+      <div class="ctrl-label">Strategy Focus</div>
+      <div class="ctrl-row"><span class="ctrl-name">Growth</span><input type="checkbox" id="sGrowth" checked/></div>
+      <div class="ctrl-row"><span class="ctrl-name">Value</span><input type="checkbox" id="sValue" checked/></div>
+      <div class="ctrl-row"><span class="ctrl-name">Dividend Income</span><input type="checkbox" id="sDiv" checked/></div>
+      <div class="ctrl-row"><span class="ctrl-name">Catalyst / Event-driven</span><input type="checkbox" id="sCatalyst" checked/></div>
+    </div>
+    <div class="ctrl-group">
+      <div class="ctrl-label">Your Profile</div>
+      <div class="ctrl-row"><span class="ctrl-name">Age</span><input type="number" id="pAge" value="29" style="width:70px"/></div>
+      <div class="ctrl-row"><span class="ctrl-name">Horizon (years)</span><input type="number" id="pHorizon" value="20" style="width:70px"/></div>
+      <div class="ctrl-row"><span class="ctrl-name">Results to show</span>
+        <select id="pCount" style="width:70px"><option value="5">5</option><option value="10" selected>10</option><option value="15">15</option></select>
+      </div>
+    </div>
+  </div>
+
+  <div id="screenerOutput">
+    <div class="loading-state">
+      <div class="big">📡</div>
+      <p>Configure filters and hit SCREEN to discover opportunities.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════
+     TAB 3: PORTFOLIO ADVISOR
+════════════════════════════════════ -->
+<div class="view" id="tabAdvisor">
+
+  <div class="card yellow-accent" style="margin-bottom:20px">
+    <div style="font-family:var(--mono);font-size:10px;letter-spacing:2px;color:var(--yellow);margin-bottom:6px">⚠ DISCLAIMER</div>
+    <p style="font-family:var(--sans);font-size:13px;color:var(--text2);line-height:1.6">This is <strong style="color:var(--text)">AI-generated analysis, not financial advice</strong>. All suggestions are based on publicly available data and quantitative models. Always do your own research and consider your personal tax situation before making portfolio changes.</p>
+  </div>
+
+  <div class="card purple-accent" style="margin-bottom:20px">
+    <div style="font-family:var(--mono);font-size:10px;letter-spacing:2px;color:var(--purple);margin-bottom:6px">PORTFOLIO ADVISOR</div>
+    <p style="font-family:var(--sans);font-size:13px;color:var(--text2);line-height:1.6">Claude reviews all your current positions, evaluates each against current fundamentals and market conditions, and suggests concrete actions — hold, add, reduce, or replace with a better alternative. Also flags missed dividend opportunities and portfolio construction issues.</p>
+  </div>
+
+  <div style="display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap">
+    <button class="btn purple" id="advisorBtn" onclick="runAdvisor()">🎯 ANALYZE MY PORTFOLIO</button>
+    <button class="btn ghost sm" onclick="runAdvisor('aggressive')">Focus: Grow faster</button>
+    <button class="btn ghost sm" onclick="runAdvisor('income')">Focus: More income</button>
+    <button class="btn ghost sm" onclick="runAdvisor('risk')">Focus: Reduce risk</button>
+  </div>
+
+  <div id="advisorOutput">
+    <div class="loading-state">
+      <div class="big">🎯</div>
+      <p>Click "Analyze My Portfolio" to get a full review of your positions.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════
+     TAB 4: SETTINGS
+════════════════════════════════════ -->
+<div class="view" id="tabSettings">
+  <div class="settings-grid">
+
+    <div class="settings-card">
+      <div class="settings-title">API KEYS</div>
+      <div class="setting-row">
+        <div class="setting-label">FINNHUB API KEY</div>
+        <input type="password" class="setting-input" id="keyFinnhub" placeholder="paste key here…" oninput="saveKeys()"/>
+        <div class="setting-hint">Free at finnhub.io — gives news sentiment, earnings calendar, company metrics</div>
+      </div>
+      <div class="setting-row">
+        <div class="setting-label">FINANCIAL MODELING PREP KEY</div>
+        <input type="password" class="setting-input" id="keyFMP" placeholder="paste key here…" oninput="saveKeys()"/>
+        <div class="setting-hint">Free at financialmodelingprep.com — gives P/E, FCF, balance sheet, income statements</div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
+        <a href="https://finnhub.io/register" target="_blank" class="btn ghost sm">→ GET FINNHUB KEY</a>
+        <a href="https://financialmodelingprep.com/register" target="_blank" class="btn ghost sm">→ GET FMP KEY</a>
+      </div>
+    </div>
+
+    <div class="settings-card">
+      <div class="settings-title">INVESTOR PROFILE</div>
+      <div class="setting-row">
+        <div class="setting-label">AGE</div>
+        <input type="number" class="setting-input" id="profAge" value="29" min="18" max="90" oninput="saveProfile()"/>
+      </div>
+      <div class="setting-row">
+        <div class="setting-label">INVESTMENT HORIZON (years)</div>
+        <input type="number" class="setting-input" id="profHorizon" value="20" min="1" max="50" oninput="saveProfile()"/>
+      </div>
+      <div class="setting-row">
+        <div class="setting-label">RISK TOLERANCE</div>
+        <select class="setting-input" id="profRisk" onchange="saveProfile()">
+          <option value="conservative">Conservative — capital preservation</option>
+          <option value="moderate">Moderate — balanced growth</option>
+          <option value="aggressive" selected>Aggressive — maximum long-term growth</option>
+        </select>
+      </div>
+      <div class="setting-row">
+        <div class="setting-label">PRIMARY GOAL</div>
+        <select class="setting-input" id="profGoal" onchange="saveProfile()">
+          <option value="wealth" selected>Long-term wealth building</option>
+          <option value="income">Dividend income</option>
+          <option value="both">Both — growth + income</option>
+        </select>
+      </div>
+      <div class="setting-row">
+        <div class="setting-label">BASE CURRENCY</div>
+        <select class="setting-input" id="profCur" onchange="saveProfile()">
+          <option value="EUR" selected>EUR — Euro</option>
+          <option value="USD">USD — Dollar</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="settings-card">
+      <div class="settings-title">DATA STATUS</div>
+      <div id="dataStatus" style="font-family:var(--mono);font-size:11px;color:var(--text3)">Loading portfolio data…</div>
+    </div>
+
+    <div class="settings-card">
+      <div class="settings-title">HOW IT WORKS</div>
+      <div style="font-family:var(--sans);font-size:13px;color:var(--text2);line-height:1.7">
+        <p style="margin-bottom:10px"><strong style="color:var(--text)">Data pipeline:</strong> When you analyze a stock, the app fetches fundamentals from Finnhub and FMP, price history from Yahoo Finance, and recent news. This structured data is sent to Claude, which synthesizes it into a scored report.</p>
+        <p style="margin-bottom:10px"><strong style="color:var(--text)">Scoring model:</strong> Each stock gets 0–100 across six factors: Quality (25%), Valuation (20%), Momentum (15%), Catalysts (20%), Sentiment (10%), Dividends (10%). The composite score drives the overall verdict.</p>
+        <p><strong style="color:var(--text)">Catalyst detection:</strong> Claude uses web search to find upcoming earnings dates, product launches, regulatory decisions, macro events — anything that could move the stock price in the next 3–6 months.</p>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+</main>
+
+<div id="toast"></div>
+
+<script>
+/* ════════════════════════════════════════
+   SHARED STATE — reads portfolio from main app
+════════════════════════════════════════ */
+let portfolio = [];
+let dividendsReceived = [];
+let keys = { finnhub: '', fmp: '' };
+let profile = { age:29, horizon:20, risk:'aggressive', goal:'wealth', cur:'EUR' };
+
+const PORTFOLIO_SK = 'folio_v5';
+const KEYS_SK      = 'folio_analyst_keys';
+const PROFILE_SK   = 'folio_analyst_profile';
+
+function loadAll() {
+  try {
+    const d = JSON.parse(localStorage.getItem(PORTFOLIO_SK)||'{}');
+    portfolio = d.P || [];
+    dividendsReceived = d.dividendsReceived || [];
+  } catch { portfolio = []; }
+  try { const k = JSON.parse(localStorage.getItem(KEYS_SK)||'{}'); keys = {...keys,...k}; } catch {}
+  try { const p = JSON.parse(localStorage.getItem(PROFILE_SK)||'{}'); profile = {...profile,...p}; } catch {}
+}
+
+function saveKeys() {
+  keys.finnhub = document.getElementById('keyFinnhub').value.trim();
+  keys.fmp     = document.getElementById('keyFMP').value.trim();
+  localStorage.setItem(KEYS_SK, JSON.stringify(keys));
+  updateApiStatus();
+}
+function saveProfile() {
+  profile.age     = parseInt(document.getElementById('profAge').value)||29;
+  profile.horizon = parseInt(document.getElementById('profHorizon').value)||20;
+  profile.risk    = document.getElementById('profRisk').value;
+  profile.goal    = document.getElementById('profGoal').value;
+  profile.cur     = document.getElementById('profCur').value;
+  localStorage.setItem(PROFILE_SK, JSON.stringify(profile));
+}
+
+function updateApiStatus() {
+  const bar = document.getElementById('apiStatus');
+  bar.innerHTML = `
+    <span class="api-chip ${keys.finnhub?'ok':'miss'}">${keys.finnhub?'✓':'✗'} FINNHUB</span>
+    <span class="api-chip ${keys.fmp?'ok':'miss'}">${keys.fmp?'✓':'✗'} FMP</span>
+  `;
+}
+
+function updateDataStatus() {
+  const el = document.getElementById('dataStatus');
+  if (!portfolio.length) {
+    el.innerHTML = '<span style="color:var(--red)">No portfolio data found. Make sure you have positions in the main app.</span>';
+    return;
+  }
+  const loaded = portfolio.filter(p=>p.price).length;
+  const totalVal = portfolio.reduce((s,p)=>{
+    if(!p.price)return s;
+    const qty=(p._ru?p.qty+p._ru:p.qty);
+    return s+p.price*qty;
+  },0);
+  el.innerHTML = `
+    <div style="display:grid;gap:6px">
+      <div>✓ Portfolio: <span style="color:var(--green)">${portfolio.length} positions</span> · €${totalVal.toLocaleString('nl-NL',{minimumFractionDigits:2,maximumFractionDigits:2})} total value</div>
+      <div>${loaded < portfolio.length ? `⚠ ${portfolio.length-loaded} positions have no price data — open portfolio and refresh` : '✓ All prices loaded'}</div>
+      <div>Finnhub: <span style="color:${keys.finnhub?'var(--green)':'var(--red)'}">${keys.finnhub?'configured ✓':'not configured — add key in settings'}</span></div>
+      <div>FMP: <span style="color:${keys.fmp?'var(--green)':'var(--red)'}">${keys.fmp?'configured ✓':'not configured — add key in settings'}</span></div>
+    </div>`;
+}
+
+/* ════════════════════════════════════════
+   NAV
+════════════════════════════════════════ */
+function switchTab(name, el) {
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('act'));
+  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('act'));
+  document.getElementById('tab'+name.charAt(0).toUpperCase()+name.slice(1)).classList.add('act');
+  el.classList.add('act');
+  if (name==='settings') updateDataStatus();
+}
+
+/* ════════════════════════════════════════
+   DATA FETCHING LAYER
+════════════════════════════════════════ */
+
+// Yahoo Finance — price + basic info (already tested and working)
+async function fetchYahooBasic(ticker) {
+  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?interval=1d&range=180d`;
+  const tryDirect = async () => {
+    const r = await fetch(url,{mode:'cors',cache:'no-store'});
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    return r.json();
+  };
+  const tryProxy = async () => {
+    const r = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`);
+    const w = await r.json(); return JSON.parse(w.contents);
+  };
+  try { return await tryDirect(); } catch { try { return await tryProxy(); } catch { return null; } }
+}
+
+async function fetchYahooSummary(ticker) {
+  const modules = 'summaryDetail,defaultKeyStatistics,financialData,earningsTrends,calendarEvents,recommendationTrend,upgradeDowngradeHistory';
+  const url = `https://query1.finance.yahoo.com/v10/finance/quoteSummary/${encodeURIComponent(ticker)}?modules=${modules}`;
+  const tryProxy = async () => {
+    const r = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`);
+    const w = await r.json(); return JSON.parse(w.contents);
+  };
+  try {
+    const r = await fetch(url,{mode:'cors',cache:'no-store'});
+    if(r.ok) return r.json();
+    return await tryProxy();
+  } catch { try { return await tryProxy(); } catch { return null; } }
+}
+
+// Finnhub — news sentiment + company metrics + earnings
+async function fetchFinnhub(endpoint) {
+  if (!keys.finnhub) return null;
+  const url = `https://finnhub.io/api/v1/${endpoint}&token=${keys.finnhub}`;
+  try {
+    const r = await fetch(url,{cache:'no-store'});
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    return r.json();
+  } catch { return null; }
+}
+
+// FMP — deep fundamentals
+async function fetchFMP(endpoint) {
+  if (!keys.fmp) return null;
+  const url = `https://financialmodelingprep.com/api/v3/${endpoint}&apikey=${keys.fmp}`;
+  try {
+    const r = await fetch(url,{cache:'no-store'});
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    return r.json();
+  } catch { return null; }
+}
+
+/* ════════════════════════════════════════
+   DATA AGGREGATOR — fetches everything for a ticker
+════════════════════════════════════════ */
+async function aggregateStockData(ticker, onProgress) {
+  const steps = ['Price history','Company summary','News & sentiment','Fundamentals','Earnings data'];
+  const data = { ticker, raw:{} };
+  let step = 0;
+
+  const prog = (msg) => { step++; onProgress && onProgress(step, steps.length, msg); };
+
+  // 1. Yahoo price history
+  prog('Fetching price history…');
+  const chart = await fetchYahooBasic(ticker);
+  if (chart?.chart?.result?.[0]) {
+    const r = chart.chart.result[0];
+    const m = r.meta;
+    data.raw.price = m.regularMarketPrice;
+    data.raw.prevClose = m.chartPreviousClose || m.previousClose;
+    data.raw.currency = m.currency;
+    data.raw.name = m.longName || m.shortName || ticker;
+    data.raw.exchange = m.exchangeName;
+    // 6-month price momentum
+    const closes = r.indicators?.quote?.[0]?.close?.filter(v=>v!=null)||[];
+    if (closes.length >= 2) {
+      data.raw.price6mAgo = closes[0];
+      data.raw.momentum6m = ((m.regularMarketPrice - closes[0]) / closes[0]) * 100;
+    }
+    // 52w range
+    data.raw.week52High = m.fiftyTwoWeekHigh;
+    data.raw.week52Low  = m.fiftyTwoWeekLow;
+  }
+
+  // 2. Yahoo summary (free, no key needed)
+  prog('Fetching company summary…');
+  const summary = await fetchYahooSummary(ticker);
+  if (summary?.quoteSummary?.result?.[0]) {
+    const res = summary.quoteSummary.result[0];
+    const sd  = res.summaryDetail || {};
+    const ks  = res.defaultKeyStatistics || {};
+    const fd  = res.financialData || {};
+    const cal = res.calendarEvents || {};
+    const rt  = res.recommendationTrend?.trend?.[0] || {};
+
+    data.raw.pe           = sd.trailingPE?.raw;
+    data.raw.forwardPE    = sd.forwardPE?.raw;
+    data.raw.pb           = sd.priceToBook?.raw;
+    data.raw.dividendYield= sd.dividendYield?.raw;
+    data.raw.dividendRate = sd.dividendRate?.raw;
+    data.raw.payoutRatio  = sd.payoutRatio?.raw;
+    data.raw.beta         = sd.beta?.raw;
+    data.raw.marketCap    = sd.marketCap?.raw;
+    data.raw.exDivDate    = sd.exDividendDate?.raw;
+
+    data.raw.roe          = fd.returnOnEquity?.raw;
+    data.raw.roa          = fd.returnOnAssets?.raw;
+    data.raw.profitMargin = fd.profitMargins?.raw;
+    data.raw.grossMargin  = fd.grossMargins?.raw;
+    data.raw.revenueGrowth= fd.revenueGrowth?.raw;
+    data.raw.earningsGrowth= fd.earningsGrowth?.raw;
+    data.raw.debtToEquity = fd.debtToEquity?.raw;
+    data.raw.currentRatio = fd.currentRatio?.raw;
+    data.raw.fcf          = fd.freeCashflow?.raw;
+    data.raw.targetPrice  = fd.targetMeanPrice?.raw;
+    data.raw.recommendation = fd.recommendationKey;
+
+    data.raw.shortRatio   = ks.shortRatio?.raw;
+    data.raw.pegRatio     = ks.pegRatio?.raw;
+    data.raw.evToEbitda   = ks.enterpriseToEbitda?.raw;
+    data.raw.insiderPct   = ks.heldPercentInsiders?.raw;
+
+    data.raw.nextEarnings = cal.earnings?.earningsDate?.[0]?.raw;
+    data.raw.nextDivDate  = cal.dividendDate?.raw;
+
+    data.raw.analystBuy   = rt.strongBuy + rt.buy;
+    data.raw.analystHold  = rt.hold;
+    data.raw.analystSell  = rt.sell + rt.strongSell;
+  }
+
+  // 3. Finnhub news sentiment
+  prog('Fetching news & sentiment…');
+  if (keys.finnhub) {
+    const today = new Date().toISOString().split('T')[0];
+    const monthAgo = new Date(Date.now()-30*864e5).toISOString().split('T')[0];
+    // Strip exchange suffix for Finnhub (ASML.AS → ASML)
+    const fhTicker = ticker.replace(/\.[A-Z]+$/, '');
+    const [news, sentiment, metrics] = await Promise.all([
+      fetchFinnhub(`company-news?symbol=${fhTicker}&from=${monthAgo}&to=${today}`),
+      fetchFinnhub(`news-sentiment?symbol=${fhTicker}`),
+      fetchFinnhub(`stock/metric?symbol=${fhTicker}&metric=all`)
+    ]);
+    if (news?.length) data.raw.recentNews = news.slice(0,8).map(n=>({headline:n.headline,summary:n.summary,datetime:n.datetime,source:n.source}));
+    if (sentiment) data.raw.sentiment = { score: sentiment.sentiment?.bearishPercent != null ? 1-sentiment.sentiment.bearishPercent : null, buzz: sentiment.buzz?.buzz, weeklyAvg: sentiment.sentiment?.weeklyAverage };
+    if (metrics?.metric) {
+      const m = metrics.metric;
+      data.raw.fhROE5y   = m['roeRfy'];
+      data.raw.fhPEG     = m['peTTM'] && m['epsGrowth3Y'] ? m['peTTM']/m['epsGrowth3Y'] : null;
+      data.raw.fhRevGrowth3y = m['revenueGrowth3Y'];
+      data.raw.fhDivGrowth5y = m['dividendGrowthRate5Y'];
+      data.raw.fhEPSGrowth3y = m['epsGrowth3Y'];
+    }
+  }
+
+  // 4. FMP fundamentals
+  prog('Fetching deep fundamentals…');
+  if (keys.fmp) {
+    const fmpTicker = ticker.replace(/\.[A-Z]+$/, '');
+    const [ratios, income, profile_] = await Promise.all([
+      fetchFMP(`ratios-ttm/${fmpTicker}?`),
+      fetchFMP(`income-statement/${fmpTicker}?limit=4&`),
+      fetchFMP(`profile/${fmpTicker}?`)
+    ]);
+    if (ratios?.[0]) {
+      data.raw.fmpFCFYield  = ratios[0].freeCashFlowYieldTTM;
+      data.raw.fmpROIC      = ratios[0].returnOnCapitalEmployedTTM;
+      data.raw.fmpDebtRatio = ratios[0].debtRatioTTM;
+      data.raw.fmpDivYield  = ratios[0].dividendYieldTTM;
+      data.raw.fmpPE        = ratios[0].priceEarningsRatioTTM;
+    }
+    if (income?.length >= 2) {
+      const rev = income.map(i=>i.revenue).filter(Boolean);
+      if (rev.length >= 2) data.raw.fmpRevGrowthYoY = (rev[0]-rev[1])/Math.abs(rev[1])*100;
+      data.raw.fmpRevenueHistory = rev.slice(0,4);
+    }
+    if (profile_?.[0]) {
+      data.raw.sector      = profile_[0].sector;
+      data.raw.industry    = profile_[0].industry;
+      data.raw.description = profile_[0].description?.slice(0,400);
+      data.raw.country     = profile_[0].country;
+      data.raw.employees   = profile_[0].fullTimeEmployees;
+    }
+  }
+
+  // 5. Earnings
+  prog('Finalizing…');
+  data.ticker = ticker;
+  data.name   = data.raw.name || ticker;
+  return data;
+}
+
+/* ════════════════════════════════════════
+   SCORING ENGINE — 0-100 composite
+════════════════════════════════════════ */
+function scoreStock(data) {
+  const r = data.raw;
+  const scores = {};
+
+  // QUALITY (25%) — ROE, margins, FCF, earnings growth
+  let q = 50;
+  if (r.roe != null)         q += r.roe > 0.2 ? 20 : r.roe > 0.12 ? 10 : r.roe > 0 ? 0 : -15;
+  if (r.profitMargin != null)q += r.profitMargin > 0.2 ? 15 : r.profitMargin > 0.1 ? 8 : r.profitMargin > 0 ? 0 : -10;
+  if (r.debtToEquity != null)q += r.debtToEquity < 0.5 ? 10 : r.debtToEquity < 1.5 ? 5 : r.debtToEquity < 3 ? 0 : -10;
+  if (r.currentRatio != null)q += r.currentRatio > 2 ? 8 : r.currentRatio > 1 ? 3 : -8;
+  if (r.fcf != null)         q += r.fcf > 0 ? 7 : -5;
+  scores.quality = Math.max(0, Math.min(100, q));
+
+  // VALUATION (20%) — P/E, P/B, PEG, FCF yield
+  let v = 50;
+  if (r.pe != null) v += r.pe < 15 ? 20 : r.pe < 25 ? 10 : r.pe < 40 ? 0 : r.pe < 60 ? -10 : -20;
+  if (r.pb != null) v += r.pb < 1.5 ? 15 : r.pb < 3 ? 8 : r.pb < 6 ? 0 : -10;
+  if (r.pegRatio != null && r.pegRatio > 0) v += r.pegRatio < 1 ? 15 : r.pegRatio < 2 ? 5 : -5;
+  if (r.fmpFCFYield != null) v += r.fmpFCFYield > 0.05 ? 10 : r.fmpFCFYield > 0.02 ? 5 : 0;
+  // Analyst target vs current
+  if (r.targetPrice && r.price) {
+    const upside = (r.targetPrice - r.price) / r.price;
+    v += upside > 0.2 ? 10 : upside > 0.05 ? 5 : upside < -0.1 ? -10 : 0;
+  }
+  scores.valuation = Math.max(0, Math.min(100, v));
+
+  // MOMENTUM (15%) — 6m price performance, 52w position
+  let m = 50;
+  if (r.momentum6m != null) m += r.momentum6m > 20 ? 20 : r.momentum6m > 5 ? 10 : r.momentum6m > -5 ? 0 : r.momentum6m > -20 ? -10 : -20;
+  if (r.price && r.week52High && r.week52Low) {
+    const pos = (r.price - r.week52Low) / (r.week52High - r.week52Low);
+    m += pos > 0.7 ? 10 : pos > 0.4 ? 5 : pos < 0.2 ? -5 : 0;
+  }
+  scores.momentum = Math.max(0, Math.min(100, m));
+
+  // CATALYSTS (20%) — earnings date, insider buying, short squeeze potential
+  let c = 50;
+  if (r.nextEarnings) {
+    const daysToEarnings = (r.nextEarnings*1000 - Date.now()) / 864e5;
+    c += daysToEarnings > 0 && daysToEarnings < 30 ? 20 : daysToEarnings < 60 ? 10 : 5;
+  }
+  if (r.insiderPct != null) c += r.insiderPct > 0.1 ? 15 : r.insiderPct > 0.05 ? 8 : 0;
+  if (r.shortRatio != null) c += r.shortRatio < 2 ? 5 : r.shortRatio > 10 ? -10 : 0;
+  if (r.fhRevGrowth3y != null) c += r.fhRevGrowth3y > 15 ? 15 : r.fhRevGrowth3y > 5 ? 8 : 0;
+  scores.catalysts = Math.max(0, Math.min(100, c));
+
+  // SENTIMENT (10%) — analyst ratings, news buzz
+  let s = 50;
+  if (r.recommendation) {
+    const rmap = {strongbuy:25,buy:15,hold:0,sell:-15,strongsell:-25,underperform:-10,neutralize:0};
+    s += rmap[r.recommendation.replace(' ','').toLowerCase()] || 0;
+  }
+  if (r.analystBuy != null && r.analystSell != null) {
+    const total = r.analystBuy + r.analystHold + r.analystSell;
+    if (total > 0) { const bull = r.analystBuy / total; s += bull > 0.7 ? 20 : bull > 0.5 ? 10 : bull < 0.3 ? -10 : 0; }
+  }
+  if (r.sentiment?.score != null) s += (r.sentiment.score - 0.5) * 40;
+  scores.sentiment = Math.max(0, Math.min(100, s));
+
+  // DIVIDEND (10%) — yield, sustainability, growth
+  let d = 50;
+  if (!r.dividendRate || r.dividendRate === 0) {
+    d = 30; // no dividend — neutral, not penalized heavily for growth stocks
+  } else {
+    if (r.dividendYield != null) d += r.dividendYield > 0.04 ? 20 : r.dividendYield > 0.02 ? 10 : 5;
+    if (r.payoutRatio != null)   d += r.payoutRatio < 0.5 ? 15 : r.payoutRatio < 0.75 ? 5 : r.payoutRatio > 1 ? -20 : -5;
+    if (r.fhDivGrowth5y != null) d += r.fhDivGrowth5y > 0.05 ? 10 : r.fhDivGrowth5y > 0 ? 5 : -5;
+  }
+  scores.dividend = Math.max(0, Math.min(100, d));
+
+  // COMPOSITE (weighted)
+  const composite = Math.round(
+    scores.quality   * 0.25 +
+    scores.valuation * 0.20 +
+    scores.momentum  * 0.15 +
+    scores.catalysts * 0.20 +
+    scores.sentiment * 0.10 +
+    scores.dividend  * 0.10
+  );
+
+  return { ...scores, composite };
+}
+
+function scoreColor(s) {
+  return s >= 70 ? 'var(--green)' : s >= 55 ? 'var(--yellow)' : 'var(--red)';
+}
+function scoreVerdict(s) {
+  return s >= 72 ? 'BUY' : s >= 58 ? 'WATCH' : s >= 45 ? 'HOLD' : 'SELL';
+}
+
+/* ════════════════════════════════════════
+   CLAUDE API CALL — streaming narrative
+════════════════════════════════════════ */
+async function callClaude(systemPrompt, userPrompt, onChunk) {
+  const response = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 1000,
+      stream: true,
+      system: systemPrompt,
+      messages: [{ role: 'user', content: userPrompt }]
+    })
+  });
+
+  if (!response.ok) {
+    const err = await response.text();
+    throw new Error('Claude API: ' + err);
+  }
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split('\n');
+    buffer = lines.pop();
+    for (const line of lines) {
+      if (!line.startsWith('data: ')) continue;
+      const data = line.slice(6);
+      if (data === '[DONE]') return;
+      try {
+        const j = JSON.parse(data);
+        if (j.type === 'content_block_delta' && j.delta?.text) {
+          onChunk(j.delta.text);
+        }
+      } catch {}
+    }
+  }
+}
+
+/* ════════════════════════════════════════
+   SYSTEM PROMPTS
+════════════════════════════════════════ */
+function buildAnalystSystemPrompt() {
+  return `You are a world-class equity analyst and portfolio manager with deep expertise in fundamental analysis, quantitative valuation, and behavioral finance. You are advising a 29-year-old Dutch investor focused on long-term wealth building with an aggressive risk tolerance and a 20-year horizon.
+
+Your analysis style:
+- Data-driven and precise, but written in clear human language
+- Honest about uncertainty and data limitations
+- Focused on what actually matters for long-term returns
+- Alert to both opportunities and risks
+- Aware of European investor context (EUR base currency, EU regulations, AEX market)
+
+Format your responses with clear section headers using **bold text**. Be specific with numbers. Flag data quality issues. Always give a clear, actionable conclusion.`;
+}
+
+function buildScreenerSystemPrompt() {
+  return `You are an expert stock screener and investment researcher. You help investors discover overlooked opportunities across global markets.
+
+Given screening criteria and an investor profile, you identify specific stocks that match the criteria. For each stock you suggest:
+1. The exact ticker symbol (including exchange suffix if relevant, e.g. ASML.AS)
+2. Why it matches the criteria
+3. Key fundamental metrics
+4. The main risk factor
+
+Return exactly a JSON array following this schema, with no other text:
+[{"ticker":"AAPL","name":"Apple Inc","exchange":"NASDAQ","score":78,"reason":"Strong FCF yield with growing services revenue","metrics":{"pe":28,"roe":0.15,"yield":0.005},"risk":"Premium valuation leaves little margin of safety","catalysts":["iPhone 17 cycle","AI integration","Services growth"],"verdict":"BUY"}]`;
+}
+
+/* ════════════════════════════════════════
+   TAB 1: ANALYZE
+════════════════════════════════════════ */
+async function runAnalysis() {
+  const ticker = document.getElementById('analyzeInput').value.trim().toUpperCase();
+  if (!ticker) { toast('Enter a ticker symbol', true); return; }
+
+  const btn = document.getElementById('analyzeBtn');
+  btn.disabled = true; btn.textContent = '···';
+
+  const out = document.getElementById('analyzeOutput');
+  out.innerHTML = `
+    <div class="loading-state">
+      <div class="big"><span class="spin" style="display:inline-block">◎</span></div>
+      <p id="progressMsg">Initializing…</p>
+      <div class="progress-bar"><div class="progress-fill" id="progressBar" style="width:0%"></div></div>
+    </div>`;
+
+  try {
+    // Fetch all data
+    const data = await aggregateStockData(ticker, (step, total, msg) => {
+      document.getElementById('progressMsg').textContent = msg;
+      document.getElementById('progressBar').style.width = (step/total*60)+'%';
+    });
+
+    if (!data.raw.price) {
+      out.innerHTML = `<div class="card red-accent"><p style="font-family:var(--mono);color:var(--red)">Could not fetch data for "${ticker}". Check the ticker symbol and try again.</p></div>`;
+      btn.disabled=false; btn.textContent='ANALYZE →'; return;
+    }
+
+    document.getElementById('progressMsg').textContent = 'Scoring…';
+    document.getElementById('progressBar').style.width = '70%';
+
+    const scores = scoreStock(data);
+    const verdict = scoreVerdict(scores.composite);
+    const r = data.raw;
+
+    document.getElementById('progressMsg').textContent = 'Generating AI analysis…';
+    document.getElementById('progressBar').style.width = '80%';
+
+    // Build the report shell
+    out.innerHTML = buildReportShell(ticker, data, scores, verdict);
+
+    document.getElementById('progressBar').style.width = '90%';
+
+    // Stream AI narrative
+    const narrativeEl = document.getElementById('aiNarrativeText');
+    narrativeEl.innerHTML = '<span class="cursor"></span>';
+    let full = '';
+
+    const systemPrompt = buildAnalystSystemPrompt();
+    const userPrompt = buildAnalysisPrompt(ticker, data, scores, verdict);
+
+    await callClaude(systemPrompt, userPrompt, (chunk) => {
+      full += chunk;
+      narrativeEl.innerHTML = formatNarrative(full) + '<span class="cursor"></span>';
+      narrativeEl.scrollIntoView({behavior:'smooth', block:'nearest'});
+    });
+
+    // Remove cursor
+    narrativeEl.innerHTML = formatNarrative(full);
+    document.getElementById('progressBar').style.width = '100%';
+
+    // Cache this analysis
+    const cache = JSON.parse(localStorage.getItem('folio_analysis_cache')||'{}');
+    cache[ticker] = { data, scores, verdict, narrative: full, ts: Date.now() };
+    try { localStorage.setItem('folio_analysis_cache', JSON.stringify(cache)); } catch {}
+
+  } catch(e) {
+    out.innerHTML = `<div class="card red-accent"><p style="font-family:var(--mono);color:var(--red)">Error: ${e.message}</p><p style="font-family:var(--sans);font-size:12px;color:var(--text3);margin-top:8px">Make sure the Claude API is accessible and the ticker is valid.</p></div>`;
+  }
+
+  btn.disabled=false; btn.textContent='ANALYZE →';
+}
+
+function buildAnalysisPrompt(ticker, data, scores, verdict) {
+  const r = data.raw;
+  const fmt = (v, suffix='', decimals=2) => v != null ? v.toFixed(decimals)+suffix : 'N/A';
+  const fmtPct = v => v != null ? (v*100).toFixed(1)+'%' : 'N/A';
+  const fmtB = v => v != null ? '€'+( v/1e9).toFixed(1)+'B' : 'N/A';
+
+  return `Analyze ${ticker} (${data.name}) for a 29-year-old Dutch long-term investor.
+
+**MARKET DATA:**
+- Current price: ${r.currency||'€'}${r.price?.toFixed(2)||'N/A'} | 52w: ${r.week52Low?.toFixed(2)||'N/A'} – ${r.week52High?.toFixed(2)||'N/A'}
+- Market cap: ${fmtB(r.marketCap)} | Beta: ${fmt(r.beta)} | Exchange: ${r.exchange||'N/A'}
+- 6-month price momentum: ${fmt(r.momentum6m,'%',1)}
+- Analyst target price: ${r.targetPrice?.toFixed(2)||'N/A'} (${r.recommendation||'N/A'}) | Buy/Hold/Sell: ${r.analystBuy||0}/${r.analystHold||0}/${r.analystSell||0}
+
+**VALUATION:**
+- Trailing P/E: ${fmt(r.pe)} | Forward P/E: ${fmt(r.forwardPE)} | P/B: ${fmt(r.pb)}
+- PEG ratio: ${fmt(r.pegRatio)} | EV/EBITDA: ${fmt(r.evToEbitda)} | FCF Yield: ${fmtPct(r.fmpFCFYield)}
+
+**QUALITY:**
+- ROE: ${fmtPct(r.roe)} | ROA: ${fmtPct(r.roa)} | Profit margin: ${fmtPct(r.profitMargin)}
+- Revenue growth (YoY): ${fmtPct(r.revenueGrowth)} | Earnings growth: ${fmtPct(r.earningsGrowth)}
+- Debt/Equity: ${fmt(r.debtToEquity)} | Current ratio: ${fmt(r.currentRatio)} | FCF: ${fmtB(r.fcf)}
+
+**DIVIDENDS:**
+- Yield: ${fmtPct(r.dividendYield)} | Annual rate: ${r.dividendRate?.toFixed(2)||'N/A'} | Payout ratio: ${fmtPct(r.payoutRatio)}
+- 5yr div growth: ${fmtPct(r.fhDivGrowth5y)} | Ex-div date: ${r.exDivDate ? new Date(r.exDivDate*1000).toLocaleDateString() : 'N/A'}
+
+**CATALYST DATA:**
+- Next earnings: ${r.nextEarnings ? new Date(r.nextEarnings*1000).toLocaleDateString() : 'N/A'}
+- Insider ownership: ${fmtPct(r.insiderPct)} | Short ratio: ${fmt(r.shortRatio)}
+- Sector: ${r.sector||'N/A'} | Industry: ${r.industry||'N/A'}
+
+**COMPOSITE SCORE: ${scores.composite}/100 — Verdict: ${verdict}**
+Factor scores: Quality ${scores.quality} | Valuation ${scores.valuation} | Momentum ${scores.momentum} | Catalysts ${scores.catalysts} | Sentiment ${scores.sentiment} | Dividend ${scores.dividend}
+
+${r.recentNews?.length ? `**RECENT NEWS HEADLINES:**\n${r.recentNews.slice(0,5).map(n=>`- ${n.headline}`).join('\n')}` : ''}
+
+${r.description ? `**COMPANY DESCRIPTION:** ${r.description}` : ''}
+
+Write a structured analysis with these sections:
+1. **Business Overview** — what this company actually does and its competitive position
+2. **Investment Case** — the bull case for owning this stock long-term
+3. **Valuation Assessment** — is it cheap, fair, or expensive, and why
+4. **Key Risks** — the top 2-3 things that could go wrong
+5. **Catalyst Watch** — upcoming events that could move the price (use web search if needed)
+6. **Verdict for a 29-year-old long-term investor** — clear actionable conclusion with position sizing suggestion
+
+Be specific. Use the data above. Note where data is missing. Max 500 words.`;
+}
+
+function buildReportShell(ticker, data, scores, verdict) {
+  const r = data.raw;
+  const color = scoreColor(scores.composite);
+  const vClass = verdict.toLowerCase();
+
+  const factorDefs = [
+    {key:'quality',   label:'QUALITY',    w:'25%'},
+    {key:'valuation', label:'VALUATION',  w:'20%'},
+    {key:'momentum',  label:'MOMENTUM',   w:'15%'},
+    {key:'catalysts', label:'CATALYSTS',  w:'20%'},
+    {key:'sentiment', label:'SENTIMENT',  w:'10%'},
+    {key:'dividend',  label:'DIVIDEND',   w:'10%'},
+  ];
+
+  const fmtPct = v => v != null ? (v*100).toFixed(1)+'%' : '—';
+
+  return `
+<div class="report-wrap">
+  <div class="report-header">
+    <div>
+      <div class="report-ticker">${ticker}</div>
+      <div class="report-name">${data.name} ${r.exchange?`· ${r.exchange}`:''}</div>
+      <div style="margin-top:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <span style="font-family:var(--mono);font-size:18px;font-weight:600;color:var(--text)">${r.price?'€'+r.price.toFixed(2):'—'}</span>
+        ${r.momentum6m!=null?`<span style="font-family:var(--mono);font-size:11px;color:${r.momentum6m>=0?'var(--green)':'var(--red)'}">${r.momentum6m>=0?'+':''}${r.momentum6m.toFixed(1)}% (6m)</span>`:''}
+      </div>
+    </div>
+    <div style="text-align:center">
+      <div style="font-family:var(--mono);font-size:48px;font-weight:600;color:${color};line-height:1">${scores.composite}</div>
+      <div style="font-family:var(--mono);font-size:9px;color:var(--text3);letter-spacing:2px;margin-top:2px">COMPOSITE</div>
+      <div class="verdict ${vClass}" style="margin-top:8px;justify-content:center">${verdict==='BUY'?'▲':verdict==='SELL'?'▼':verdict==='WATCH'?'◉':'◆'} ${verdict}</div>
+    </div>
+  </div>
+
+  <div class="report-body">
+    <!-- Factor bars -->
+    <div class="factor-bars" style="margin-bottom:20px">
+      ${factorDefs.map(f=>`
+        <div class="fbar-row">
+          <div class="fbar-label">${f.label} <span style="color:var(--text3);font-size:9px">${f.w}</span></div>
+          <div class="fbar-track">
+            <div class="fbar-fill" style="width:${scores[f.key]}%;background:${scoreColor(scores[f.key])}"></div>
+          </div>
+          <div class="fbar-score" style="color:${scoreColor(scores[f.key])}">${scores[f.key]}</div>
+        </div>`).join('')}
+    </div>
+
+    <!-- Key metrics grid -->
+    <div class="report-grid">
+      <div class="metric-group">
+        <div class="metric-group-title">Valuation</div>
+        <div class="metric-row"><span class="metric-label">P/E (TTM)</span><span class="metric-val ${r.pe<20?'good':r.pe>40?'bad':''}">${r.pe?.toFixed(1)||'—'}</span></div>
+        <div class="metric-row"><span class="metric-label">Forward P/E</span><span class="metric-val">${r.forwardPE?.toFixed(1)||'—'}</span></div>
+        <div class="metric-row"><span class="metric-label">P/B</span><span class="metric-val ${r.pb<2?'good':r.pb>5?'bad':''}">${r.pb?.toFixed(2)||'—'}</span></div>
+        <div class="metric-row"><span class="metric-label">PEG Ratio</span><span class="metric-val ${r.pegRatio&&r.pegRatio<1.5?'good':r.pegRatio>2.5?'bad':''}">${r.pegRatio?.toFixed(2)||'—'}</span></div>
+        <div class="metric-row"><span class="metric-label">Analyst Target</span><span class="metric-val">${r.targetPrice?'€'+r.targetPrice.toFixed(2):'—'}</span></div>
+      </div>
+      <div class="metric-group">
+        <div class="metric-group-title">Quality</div>
+        <div class="metric-row"><span class="metric-label">ROE</span><span class="metric-val ${r.roe>0.15?'good':r.roe<0?'bad':''}">${fmtPct(r.roe)}</span></div>
+        <div class="metric-row"><span class="metric-label">Profit Margin</span><span class="metric-val ${r.profitMargin>0.15?'good':r.profitMargin<0?'bad':''}">${fmtPct(r.profitMargin)}</span></div>
+        <div class="metric-row"><span class="metric-label">Rev Growth YoY</span><span class="metric-val ${r.revenueGrowth>0.1?'good':r.revenueGrowth<0?'bad':''}">${fmtPct(r.revenueGrowth)}</span></div>
+        <div class="metric-row"><span class="metric-label">Debt/Equity</span><span class="metric-val ${r.debtToEquity<1?'good':r.debtToEquity>2.5?'bad':''}">${r.debtToEquity?.toFixed(2)||'—'}</span></div>
+        <div class="metric-row"><span class="metric-label">Current Ratio</span><span class="metric-val ${r.currentRatio>1.5?'good':r.currentRatio<1?'bad':''}">${r.currentRatio?.toFixed(2)||'—'}</span></div>
+      </div>
+      <div class="metric-group">
+        <div class="metric-group-title">Dividends & Sentiment</div>
+        <div class="metric-row"><span class="metric-label">Div Yield</span><span class="metric-val good">${fmtPct(r.dividendYield)}</span></div>
+        <div class="metric-row"><span class="metric-label">Payout Ratio</span><span class="metric-val ${r.payoutRatio&&r.payoutRatio<0.6?'good':r.payoutRatio>0.9?'bad':''}">${fmtPct(r.payoutRatio)}</span></div>
+        <div class="metric-row"><span class="metric-label">Analyst Rating</span><span class="metric-val">${r.recommendation||'—'}</span></div>
+        <div class="metric-row"><span class="metric-label">Buy / Hold / Sell</span><span class="metric-val">${r.analystBuy||'—'} / ${r.analystHold||'—'} / ${r.analystSell||'—'}</span></div>
+        <div class="metric-row"><span class="metric-label">Short Ratio</span><span class="metric-val ${r.shortRatio<3?'good':r.shortRatio>8?'bad':''}">${r.shortRatio?.toFixed(1)||'—'}</span></div>
+      </div>
+      <div class="metric-group">
+        <div class="metric-group-title">Upcoming Catalysts</div>
+        <div class="metric-row"><span class="metric-label">Next Earnings</span><span class="metric-val">${r.nextEarnings?new Date(r.nextEarnings*1000).toLocaleDateString('nl-NL'):'—'}</span></div>
+        <div class="metric-row"><span class="metric-label">Next Dividend</span><span class="metric-val">${r.nextDivDate?new Date(r.nextDivDate*1000).toLocaleDateString('nl-NL'):'—'}</span></div>
+        <div class="metric-row"><span class="metric-label">Insider Own.</span><span class="metric-val">${fmtPct(r.insiderPct)}</span></div>
+        <div class="metric-row"><span class="metric-label">Beta</span><span class="metric-val">${r.beta?.toFixed(2)||'—'}</span></div>
+        <div class="metric-row"><span class="metric-label">Sector</span><span class="metric-val" style="font-size:10px">${r.sector||'—'}</span></div>
+      </div>
+    </div>
+
+    <!-- AI Narrative -->
+    <hr class="div"/>
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
+      <div style="font-family:var(--mono);font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--purple)">AI ANALYSIS</div>
+      <div style="font-family:var(--mono);font-size:9px;color:var(--text3)">CLAUDE SONNET · ${new Date().toLocaleDateString('nl-NL')}</div>
+    </div>
+    <div class="ai-narrative" id="aiNarrativeText"></div>
+
+    ${r.recentNews?.length ? `
+    <hr class="div"/>
+    <div style="font-family:var(--mono);font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--text3);margin-bottom:12px">RECENT NEWS</div>
+    <div class="catalyst-list">
+      ${r.recentNews.slice(0,5).map(n=>`
+        <div class="catalyst-item">
+          <div class="catalyst-icon">📰</div>
+          <div>
+            <div class="catalyst-text"><strong>${n.headline}</strong></div>
+            <div class="catalyst-date">${new Date(n.datetime*1000).toLocaleDateString('nl-NL')} · ${n.source}</div>
+          </div>
+        </div>`).join('')}
+    </div>` : ''}
+  </div>
+</div>`;
+}
+
+function formatNarrative(text) {
+  return text
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.*?)\*/g, '<em>$1</em>')
+    .replace(/\n/g, '<br/>');
+}
+
+/* ════════════════════════════════════════
+   TAB 2: SCREENER
+════════════════════════════════════════ */
+async function runScreener() {
+  const prompt = document.getElementById('screenPrompt').value.trim();
+  const btn = document.getElementById('screenBtn');
+  btn.disabled=true; btn.textContent='···';
+
+  const out = document.getElementById('screenerOutput');
+  out.innerHTML = `<div class="loading-state"><div class="big"><span class="spin" style="display:inline-block">📡</span></div><p>Claude is scanning the universe for opportunities…</p></div>`;
+
+  // Build filter summary
+  const universes = [];
+  if(document.getElementById('uSP500').checked) universes.push('S&P 500');
+  if(document.getElementById('uNDX').checked)   universes.push('NASDAQ 100');
+  if(document.getElementById('uAEX').checked)   universes.push('AEX/European blue chips');
+  if(document.getElementById('uDIV').checked)   universes.push('Global Dividend Aristocrats');
+  if(document.getElementById('uSMID').checked)  universes.push('Small/Mid Cap hidden gems');
+
+  const strategies = [];
+  if(document.getElementById('sGrowth').checked)   strategies.push('growth');
+  if(document.getElementById('sValue').checked)     strategies.push('value');
+  if(document.getElementById('sDiv').checked)       strategies.push('dividend income');
+  if(document.getElementById('sCatalyst').checked)  strategies.push('catalyst/event-driven');
+
+  const filters = {
+    maxPE:      parseFloat(document.getElementById('fPE').value)||35,
+    maxPB:      parseFloat(document.getElementById('fPB').value)||10,
+    minYield:   parseFloat(document.getElementById('fYield').value)||0,
+    minROE:     parseFloat(document.getElementById('fROE').value)||10,
+    minRevGrowth: parseFloat(document.getElementById('fRevGrowth').value)||5,
+    maxDE:      parseFloat(document.getElementById('fDE').value)||2,
+  };
+
+  const count = parseInt(document.getElementById('pCount').value)||10;
+
+  const userPrompt = `You are screening stocks for a 29-year-old Dutch investor (aggressive growth, 20-year horizon, EUR base).
+
+Screener criteria:
+- Universes: ${universes.join(', ')}
+- Strategy focus: ${strategies.join(', ')}
+- Max P/E: ${filters.maxPE}
+- Max P/B: ${filters.maxPB}
+- Min dividend yield: ${filters.minYield}%
+- Min ROE: ${filters.minROE}%
+- Min revenue growth: ${filters.minRevGrowth}%
+- Max Debt/Equity: ${filters.maxDE}
+${prompt ? `\n- Additional criteria: "${prompt}"` : ''}
+
+Find ${count} stocks that best match these criteria. Focus on genuinely overlooked opportunities with solid fundamentals — not just obvious mega-caps. Include a mix of US and European names where relevant.
+
+Crucially: for each stock, identify 2-3 specific upcoming catalysts that could drive outperformance in the next 6-12 months (earnings, product launches, regulatory events, sector tailwinds).
+
+Return ONLY a valid JSON array, no markdown, no explanation outside the JSON.`;
+
+  try {
+    let jsonStr = '';
+    await callClaude(buildScreenerSystemPrompt(), userPrompt, chunk => { jsonStr += chunk; });
+
+    // Clean and parse
+    const clean = jsonStr.replace(/```json|```/g,'').trim();
+    const results = JSON.parse(clean);
+    renderScreenResults(results);
+  } catch(e) {
+    out.innerHTML = `<div class="card red-accent"><p style="font-family:var(--mono);color:var(--red)">Error: ${e.message}</p></div>`;
+  }
+
+  btn.disabled=false; btn.textContent='SCREEN →';
+}
+
+function renderScreenResults(results) {
+  if (!results?.length) {
+    document.getElementById('screenerOutput').innerHTML = `<div class="loading-state"><div class="big">∅</div><p>No results. Try relaxing the filters.</p></div>`;
+    return;
+  }
+  document.getElementById('screenerOutput').innerHTML = `
+    <div style="font-family:var(--mono);font-size:10px;color:var(--text3);letter-spacing:2px;margin-bottom:12px">${results.length} STOCKS IDENTIFIED</div>
+    <div class="screen-results">
+      ${results.map((s,i) => {
+        const color = scoreColor(s.score||50);
+        const vClass = (s.verdict||'WATCH').toLowerCase();
+        return `<div class="screen-card" onclick="analyzeFromScreener('${s.ticker}')">
+          <div>
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
+              <span style="font-family:var(--mono);font-size:11px;color:var(--text3);width:20px">#${i+1}</span>
+              <span class="screen-ticker">${s.ticker}</span>
+              <span class="screen-name">${s.name}</span>
+              <span style="font-family:var(--mono);font-size:9px;color:var(--text3)">${s.exchange||''}</span>
+            </div>
+            <p style="font-family:var(--sans);font-size:13px;color:var(--text2);line-height:1.5;margin-left:30px;margin-bottom:8px">${s.reason}</p>
+            ${s.metrics ? `<div style="display:flex;gap:16px;margin-left:30px;margin-bottom:8px;flex-wrap:wrap">
+              ${s.metrics.pe   ? `<span style="font-family:var(--mono);font-size:10px;color:var(--text3)">P/E: <span style="color:var(--text)">${s.metrics.pe}</span></span>` : ''}
+              ${s.metrics.roe  ? `<span style="font-family:var(--mono);font-size:10px;color:var(--text3)">ROE: <span style="color:var(--text)">${(s.metrics.roe*100).toFixed(0)}%</span></span>` : ''}
+              ${s.metrics.yield? `<span style="font-family:var(--mono);font-size:10px;color:var(--text3)">Yield: <span style="color:var(--green)">${(s.metrics.yield*100).toFixed(1)}%</span></span>` : ''}
+            </div>` : ''}
+            ${s.catalysts?.length ? `<div class="screen-chips" style="margin-left:30px">
+              ${s.catalysts.map(c=>`<span class="chip blue">⚡ ${c}</span>`).join('')}
+            </div>` : ''}
+            ${s.risk ? `<p style="font-family:var(--mono);font-size:10px;color:var(--red);margin-top:8px;margin-left:30px">⚠ ${s.risk}</p>` : ''}
+          </div>
+          <div style="text-align:center;min-width:60px">
+            <div style="font-family:var(--mono);font-size:28px;font-weight:600;color:${color};line-height:1">${s.score||'—'}</div>
+            <div class="verdict ${vClass}" style="margin-top:6px;font-size:9px;padding:3px 8px">${s.verdict||'WATCH'}</div>
+            <div style="font-family:var(--mono);font-size:9px;color:var(--text3);margin-top:4px">ANALYZE →</div>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>`;
+}
+
+function analyzeFromScreener(ticker) {
+  document.getElementById('analyzeInput').value = ticker;
+  switchTab('analyze', document.querySelectorAll('.nav-tab')[0]);
+  runAnalysis();
+}
+
+/* ════════════════════════════════════════
+   TAB 3: PORTFOLIO ADVISOR
+════════════════════════════════════════ */
+async function runAdvisor(focus='balanced') {
+  if (!portfolio.length) {
+    toast('No portfolio data found — add positions in the main app first', true);
+    return;
+  }
+
+  const btn = document.getElementById('advisorBtn');
+  btn.disabled=true; btn.textContent='···';
+
+  const out = document.getElementById('advisorOutput');
+  out.innerHTML = `<div class="loading-state"><div class="big"><span class="spin" style="display:inline-block">🎯</span></div><p>Analyzing your portfolio…</p><div class="progress-bar"><div class="progress-fill" id="advisorProgress" style="width:0%"></div></div></div>`;
+
+  // Summarize portfolio for Claude
+  const totalValue = portfolio.reduce((s,p) => {
+    if (!p.price) return s;
+    const q = p._ru ? p.qty + p._ru : p.qty;
+    return s + p.price * q;
+  }, 0);
+  const totalCost = portfolio.reduce((s,p) => {
+    const cb = p.costBasis || p.qty * p.avgCost;
+    const extra = p._rc || 0;
+    return s + cb + extra;
+  }, 0);
+
+  document.getElementById('advisorProgress').style.width = '30%';
+
+  const positionSummaries = portfolio.map(p => {
+    const q = p._ru ? p.qty + p._ru : p.qty;
+    const cb = (p.costBasis || p.qty * p.avgCost) + (p._rc||0);
+    const mv = p.price ? p.price * q : 0;
+    const pl = mv - cb;
+    const plPct = cb ? pl/cb*100 : 0;
+    const weight = totalValue ? mv/totalValue*100 : 0;
+    return `- ${p.ticker||p.isin} (${p.name||''}): ${q.toFixed(4)} units @ €${p.avgCost?.toFixed(2)||'?'} avg cost · current: €${p.price?.toFixed(2)||'?'} · value: €${mv.toFixed(2)} (${weight.toFixed(1)}% of portfolio) · P&L: ${pl>=0?'+':''}€${pl.toFixed(2)} (${plPct>=0?'+':''}${plPct.toFixed(1)}%) · account: ${p.account||'?'}`;
+  }).join('\n');
+
+  document.getElementById('advisorProgress').style.width = '60%';
+
+  const focusMap = {
+    balanced: 'balanced optimization for long-term wealth building',
+    aggressive: 'maximizing long-term growth — willing to accept higher volatility',
+    income: 'increasing dividend income without sacrificing too much growth',
+    risk: 'reducing portfolio risk and concentration while maintaining returns'
+  };
+
+  const userPrompt = `Review this portfolio for a 29-year-old Dutch investor and give actionable advice.
+
+**PORTFOLIO OVERVIEW:**
+Total value: €${totalValue.toFixed(2)} | Total cost: €${totalCost.toFixed(2)} | Total P&L: ${totalValue-totalCost>=0?'+':''}€${(totalValue-totalCost).toFixed(2)} (${totalCost?(((totalValue-totalCost)/totalCost)*100).toFixed(1):'0'}%)
+
+**POSITIONS:**
+${positionSummaries}
+
+**INVESTOR PROFILE:**
+- Age: ${profile.age} | Horizon: ${profile.horizon} years | Risk: ${profile.risk} | Goal: ${profile.goal}
+- Focus for this review: ${focusMap[focus]||focusMap.balanced}
+
+**WHAT TO ANALYZE:**
+
+1. **Portfolio Health Check** — concentration risk, geographic/sector diversification, currency exposure
+2. **Position-by-position verdict** — for each holding: HOLD / ADD / REDUCE / REPLACE and why
+3. **Missed opportunities** — given the portfolio's goals, what important asset class or sector is missing?
+4. **Dividend optimization** — are the distributing ETFs (IDVY, VUSA, VHYL) optimally positioned for both income and growth? Any better alternatives?
+5. **The ABN Begeleid Beleggen fund** — given this is a managed fund at 0.84% TER, is there a better self-directed alternative that could achieve similar or better risk-adjusted returns at lower cost?
+6. **Top 3 concrete action items** — ranked by priority, with specific replacement suggestions where relevant
+
+Be specific. Name actual tickers for replacements. Acknowledge that the portfolio is still small (€5k range) and growing — advice should be practical for this stage.`;
+
+  try {
+    const narrativeEl = document.createElement('div');
+    narrativeEl.className = 'ai-narrative';
+    const wrapper = document.createElement('div');
+    wrapper.className = 'card purple-accent';
+    wrapper.style.marginTop = '0';
+
+    const header = document.createElement('div');
+    header.innerHTML = `<div style="font-family:var(--mono);font-size:10px;letter-spacing:3px;color:var(--purple);margin-bottom:14px">PORTFOLIO ANALYSIS — CLAUDE SONNET · ${new Date().toLocaleDateString('nl-NL')}</div>`;
+
+    wrapper.appendChild(header);
+    wrapper.appendChild(narrativeEl);
+    out.innerHTML = '';
+    out.appendChild(wrapper);
+
+    narrativeEl.innerHTML = '<span class="cursor"></span>';
+    let full = '';
+
+    await callClaude(buildAnalystSystemPrompt(), userPrompt, chunk => {
+      full += chunk;
+      narrativeEl.innerHTML = formatNarrative(full) + '<span class="cursor"></span>';
+    });
+
+    narrativeEl.innerHTML = formatNarrative(full);
+    document.getElementById('advisorProgress') && (document.getElementById('advisorProgress').style.width = '100%');
+
+  } catch(e) {
+    out.innerHTML = `<div class="card red-accent"><p style="font-family:var(--mono);color:var(--red)">Error: ${e.message}</p></div>`;
+  }
+
+  btn.disabled=false; btn.textContent='🎯 ANALYZE MY PORTFOLIO';
+}
+
+/* ════════════════════════════════════════
+   TOAST
+════════════════════════════════════════ */
+function toast(msg, err=false) {
+  const e=document.getElementById('toast');
+  e.textContent=msg; e.className='show'+(err?' err':'');
+  clearTimeout(e._t); e._t=setTimeout(()=>e.className='',3500);
+}
+
+/* ════════════════════════════════════════
+   INIT
+════════════════════════════════════════ */
+loadAll();
+
+// Restore settings UI
+document.getElementById('keyFinnhub').value = keys.finnhub || '';
+document.getElementById('keyFMP').value     = keys.fmp     || '';
+document.getElementById('profAge').value     = profile.age;
+document.getElementById('profHorizon').value = profile.horizon;
+document.getElementById('profRisk').value    = profile.risk;
+document.getElementById('profGoal').value    = profile.goal;
+document.getElementById('profCur').value     = profile.cur;
+
+updateApiStatus();
+
+// Quick picks from portfolio + popular
+const picks = [...new Set([
+  ...portfolio.filter(p=>p.ticker).map(p=>p.ticker),
+  'ASML.AS','NVDA','MSFT','GOOGL','MC.PA','NOVO-B.CO','HIMS'
+])].slice(0,8);
+const qp = document.getElementById('quickPicks');
+picks.forEach(t => {
+  const b = document.createElement('button');
+  b.className = 'btn ghost sm';
+  b.textContent = t;
+  b.style.fontFamily = 'var(--mono)';
+  b.onclick = () => { document.getElementById('analyzeInput').value=t; runAnalysis(); };
+  qp.appendChild(b);
+});
+</script>
+</body>
+</html>
