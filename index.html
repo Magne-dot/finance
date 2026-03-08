@@ -884,7 +884,10 @@ if(P.length===0){
     avgCost: ABN_COST / ABN_UNITS,
     costBasis: ABN_COST,
     account:'ABN AMRO',cur:'EUR',price:ABN_NAV,prev:ABN_NAV,loading:false,
-    rec:{on:true,amt:100,day:26,freq:'monthly',since:'2026-02-01'}
+    // IMPORTANT: 'since' = today because qty is already back-calculated from
+    // today's known value (€3480.82), which includes all past inlays.
+    // Recurring tracking starts from the NEXT buy (Apr 26) onwards.
+    rec:{on:true,amt:100,day:26,freq:'monthly',since:today}
   });
 
   // 2. iShares Euro Dividend — IDVY.AS
@@ -918,6 +921,16 @@ if(P.length===0){
 
   save();
   log('First run — seeded 4 positions. Total baseline: €5021.76, Cost: €4646.76','ok');
+}
+
+// MIGRATION: fix the since date on the ABN fund if it was saved with the old
+// '2026-02-01' value — that caused a phantom €100 extra inlay to be counted.
+const abnPos = P.find(p=>p.id==='abn_begeleid'||p.isin==='LU0121971286');
+if(abnPos && abnPos.rec?.since && abnPos.rec.since < '2026-03-08'){
+  abnPos.rec.since = new Date().toISOString().split('T')[0];
+  abnPos._ru = 0; abnPos._rc = 0; // clear cached recurring totals
+  save();
+  log('Migration: fixed ABN recurring since date → today. Past inlays already in unit count.','ok');
 }
 
 // Apply recurring to loaded positions
