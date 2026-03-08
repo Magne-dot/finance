@@ -347,27 +347,27 @@ hr.div{border:none;border-top:1px solid var(--border);margin:16px 0}
       <div class="settings-title">API KEYS</div>
 
       <div class="setting-row">
-        <div class="setting-label">GOOGLE GEMINI API KEY</div>
-        <input type="password" class="setting-input" id="keyClaudeKey" placeholder="AIza…" oninput="saveKeys()"/>
-        <div class="setting-hint">100% free at <a href="https://aistudio.google.com/apikey" target="_blank" style="color:var(--purple)">aistudio.google.com/apikey</a> — sign in with Google → Create API key. 1,500 req/day, no credit card.</div>
+        <div class="setting-label">GROQ API KEY</div>
+        <input type="password" class="setting-input" id="keyClaudeKey" placeholder="gsk_…" oninput="saveKeys()"/>
+        <div class="setting-hint">100% free at <a href="https://console.groq.com" target="_blank" style="color:var(--purple)">console.groq.com</a> — sign up → API Keys → Create. 14,400 req/day, no credit card. Runs Llama 3.3 70B.</div>
       </div>
 
       <div class="setting-row">
         <div class="setting-label">CLOUDFLARE WORKER PROXY URL</div>
         <input type="text" class="setting-input" id="keyProxy" placeholder="https://folio-proxy.yourname.workers.dev" oninput="saveKeys()"/>
-        <div class="setting-hint">Required to call Gemini from the browser. Deploy <code style="color:var(--accent)">cloudflare-worker.js</code> — see steps below.</div>
+        <div class="setting-hint">Required to call Groq from the browser. Deploy <code style="color:var(--accent)">cloudflare-worker.js</code> — see steps below.</div>
       </div>
 
       <div style="background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:14px;margin-bottom:16px">
         <div style="font-family:var(--mono);font-size:10px;letter-spacing:2px;color:var(--yellow);margin-bottom:8px">SETUP — 3 MINUTES, COMPLETELY FREE</div>
         <ol style="font-family:var(--sans);font-size:12px;color:var(--text2);line-height:2.2;padding-left:18px">
-          <li>Get Gemini key: <a href="https://aistudio.google.com/apikey" target="_blank" style="color:var(--accent2)">aistudio.google.com/apikey</a> → sign in with Google → <strong style="color:var(--text)">Create API key</strong></li>
+          <li>Get Groq key: <a href="https://console.groq.com" target="_blank" style="color:var(--accent2)">console.groq.com</a> → sign up → <strong style="color:var(--text)">API Keys → Create API key</strong></li>
           <li>Go to <a href="https://workers.cloudflare.com" target="_blank" style="color:var(--accent2)">workers.cloudflare.com</a> → sign up free (email only)</li>
           <li>Click <strong style="color:var(--text)">Create Worker</strong> → clear all code → paste the full contents of <code style="color:var(--accent)">cloudflare-worker.js</code></li>
           <li>Click <strong style="color:var(--text)">Deploy</strong> → copy the <code style="color:var(--accent)">.workers.dev</code> URL</li>
-          <li>Paste Gemini key and Worker URL in the fields above</li>
+          <li>Paste Groq key and Worker URL in the fields above</li>
         </ol>
-        <div style="font-family:var(--mono);font-size:10px;color:var(--text3);margin-top:8px">Cloudflare: 100k req/day free · Gemini: 1,500 req/day free · Your key is never stored by the worker.</div>
+        <div style="font-family:var(--mono);font-size:10px;color:var(--text3);margin-top:8px">Cloudflare: 100k req/day free · Groq: 14,400 req/day free · Llama 3.3 70B model · Your key is never stored.</div>
       </div>
 
       <div class="setting-row">
@@ -481,7 +481,7 @@ function saveProfile() {
 function updateApiStatus() {
   const bar = document.getElementById('apiStatus');
   bar.innerHTML = `
-    <span class="api-chip ${keys.claudeProxy && keys.claudeKey ? 'ok':'miss'}">${keys.claudeProxy && keys.claudeKey ? '✓':'✗'} GEMINI</span>
+    <span class="api-chip ${keys.claudeProxy && keys.claudeKey ? 'ok':'miss'}">${keys.claudeProxy && keys.claudeKey ? '✓':'✗'} GROQ</span>
     <span class="api-chip ${keys.finnhub?'ok':'miss'}">${keys.finnhub?'✓':'✗'} FINNHUB</span>
     <span class="api-chip ${keys.fmp?'ok':'miss'}">${keys.fmp?'✓':'✗'} FMP</span>
   `;
@@ -854,7 +854,7 @@ async function callClaude(systemPrompt, userPrompt, onChunk) {
     throw new Error('No proxy URL set. Go to ⚙ Settings → paste your Cloudflare Worker URL.');
   }
   if (!keys.claudeKey) {
-    throw new Error('No Gemini API key set. Go to ⚙ Settings → paste your Gemini key (free at aistudio.google.com/apikey).');
+    throw new Error('No Groq API key set. Go to ⚙ Settings → get a free key at console.groq.com.');
   }
 
   const r = await fetch(keys.claudeProxy, {
