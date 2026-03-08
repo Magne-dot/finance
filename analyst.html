@@ -347,26 +347,27 @@ hr.div{border:none;border-top:1px solid var(--border);margin:16px 0}
       <div class="settings-title">API KEYS</div>
 
       <div class="setting-row">
-        <div class="setting-label">ANTHROPIC (CLAUDE) API KEY</div>
-        <input type="password" class="setting-input" id="keyClaudeKey" placeholder="sk-ant-…" oninput="saveKeys()"/>
-        <div class="setting-hint">Get from <a href="https://console.anthropic.com/keys" target="_blank" style="color:var(--purple)">console.anthropic.com/keys</a> — this powers all AI analysis</div>
+        <div class="setting-label">GOOGLE GEMINI API KEY</div>
+        <input type="password" class="setting-input" id="keyClaudeKey" placeholder="AIza…" oninput="saveKeys()"/>
+        <div class="setting-hint">100% free at <a href="https://aistudio.google.com/apikey" target="_blank" style="color:var(--purple)">aistudio.google.com/apikey</a> — sign in with Google → Create API key. 1,500 req/day, no credit card.</div>
       </div>
 
       <div class="setting-row">
         <div class="setting-label">CLOUDFLARE WORKER PROXY URL</div>
         <input type="text" class="setting-input" id="keyProxy" placeholder="https://folio-proxy.yourname.workers.dev" oninput="saveKeys()"/>
-        <div class="setting-hint">Required to call Claude from the browser. Deploy the included <code style="color:var(--accent)">cloudflare-worker.js</code> — see setup steps below.</div>
+        <div class="setting-hint">Required to call Gemini from the browser. Deploy <code style="color:var(--accent)">cloudflare-worker.js</code> — see steps below.</div>
       </div>
 
       <div style="background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:14px;margin-bottom:16px">
-        <div style="font-family:var(--mono);font-size:10px;letter-spacing:2px;color:var(--yellow);margin-bottom:8px">PROXY SETUP — 3 MINUTES, FREE</div>
-        <ol style="font-family:var(--sans);font-size:12px;color:var(--text2);line-height:2;padding-left:18px">
-          <li>Go to <a href="https://workers.cloudflare.com" target="_blank" style="color:var(--accent2)">workers.cloudflare.com</a> → sign up free</li>
-          <li>Click <strong style="color:var(--text)">Create Worker</strong> → replace all code with the contents of <code style="color:var(--accent)">cloudflare-worker.js</code></li>
+        <div style="font-family:var(--mono);font-size:10px;letter-spacing:2px;color:var(--yellow);margin-bottom:8px">SETUP — 3 MINUTES, COMPLETELY FREE</div>
+        <ol style="font-family:var(--sans);font-size:12px;color:var(--text2);line-height:2.2;padding-left:18px">
+          <li>Get Gemini key: <a href="https://aistudio.google.com/apikey" target="_blank" style="color:var(--accent2)">aistudio.google.com/apikey</a> → sign in with Google → <strong style="color:var(--text)">Create API key</strong></li>
+          <li>Go to <a href="https://workers.cloudflare.com" target="_blank" style="color:var(--accent2)">workers.cloudflare.com</a> → sign up free (email only)</li>
+          <li>Click <strong style="color:var(--text)">Create Worker</strong> → clear all code → paste the full contents of <code style="color:var(--accent)">cloudflare-worker.js</code></li>
           <li>Click <strong style="color:var(--text)">Deploy</strong> → copy the <code style="color:var(--accent)">.workers.dev</code> URL</li>
-          <li>Paste the URL in the field above</li>
+          <li>Paste Gemini key and Worker URL in the fields above</li>
         </ol>
-        <div style="font-family:var(--mono);font-size:10px;color:var(--text3);margin-top:8px">Free tier: 100,000 requests/day. Your API key is never stored — it's sent directly to Anthropic on each request.</div>
+        <div style="font-family:var(--mono);font-size:10px;color:var(--text3);margin-top:8px">Cloudflare: 100k req/day free · Gemini: 1,500 req/day free · Your key is never stored by the worker.</div>
       </div>
 
       <div class="setting-row">
@@ -480,7 +481,7 @@ function saveProfile() {
 function updateApiStatus() {
   const bar = document.getElementById('apiStatus');
   bar.innerHTML = `
-    <span class="api-chip ${keys.claudeProxy && keys.claudeKey ? 'ok':'miss'}">${keys.claudeProxy && keys.claudeKey ? '✓':'✗'} CLAUDE</span>
+    <span class="api-chip ${keys.claudeProxy && keys.claudeKey ? 'ok':'miss'}">${keys.claudeProxy && keys.claudeKey ? '✓':'✗'} GEMINI</span>
     <span class="api-chip ${keys.finnhub?'ok':'miss'}">${keys.finnhub?'✓':'✗'} FINNHUB</span>
     <span class="api-chip ${keys.fmp?'ok':'miss'}">${keys.fmp?'✓':'✗'} FMP</span>
   `;
@@ -806,15 +807,15 @@ function scoreVerdict(s) {
 }
 
 /* ════════════════════════════════════════
-   CLAUDE API CALL — routed through Cloudflare Worker proxy
-   The proxy handles CORS and forwards to api.anthropic.com
+   AI API CALL — routes through Cloudflare Worker → Google Gemini (free)
+   Get a free Gemini key at aistudio.google.com/apikey (1500 req/day, no card)
 ════════════════════════════════════════ */
 async function callClaude(systemPrompt, userPrompt, onChunk) {
   if (!keys.claudeProxy) {
-    throw new Error('No proxy URL configured. Go to Settings → Proxy URL and paste your Cloudflare Worker URL.');
+    throw new Error('No proxy URL set. Go to ⚙ Settings → paste your Cloudflare Worker URL.');
   }
   if (!keys.claudeKey) {
-    throw new Error('No Claude API key configured. Go to Settings and paste your Anthropic API key.');
+    throw new Error('No Gemini API key set. Go to ⚙ Settings → paste your Gemini key (free at aistudio.google.com/apikey).');
   }
 
   const r = await fetch(keys.claudeProxy, {
@@ -822,25 +823,23 @@ async function callClaude(systemPrompt, userPrompt, onChunk) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       apiKey: keys.claudeKey,
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 1000,
       system: systemPrompt,
-      messages: [{ role: 'user', content: userPrompt }]
+      userMessage: userPrompt
     })
   });
 
   if (!r.ok) {
     const errText = await r.text();
-    throw new Error('Proxy error ' + r.status + ': ' + errText.slice(0, 200));
+    throw new Error('Worker error ' + r.status + ': ' + errText.slice(0, 300));
   }
 
   const j = await r.json();
-  if (j.error) throw new Error('Anthropic error: ' + (j.error.message || JSON.stringify(j.error)));
+  if (j.error) throw new Error('Gemini error: ' + j.error);
 
-  const responseText = j?.content?.[0]?.text;
-  if (!responseText) throw new Error('Empty response from Claude');
+  const responseText = j?.text;
+  if (!responseText) throw new Error('Empty response from AI');
 
-  // Simulate typing effect — deliver in small chunks
+  // Simulate typing effect
   const chunkSize = 6;
   for (let i = 0; i < responseText.length; i += chunkSize) {
     onChunk(responseText.slice(i, i + chunkSize));
