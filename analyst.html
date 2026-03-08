@@ -345,19 +345,39 @@ hr.div{border:none;border-top:1px solid var(--border);margin:16px 0}
 
     <div class="settings-card">
       <div class="settings-title">API KEYS</div>
+
+      <div class="setting-row">
+        <div class="setting-label">ANTHROPIC (CLAUDE) API KEY</div>
+        <input type="password" class="setting-input" id="keyClaudeKey" placeholder="sk-ant-…" oninput="saveKeys()"/>
+        <div class="setting-hint">Get from <a href="https://console.anthropic.com/keys" target="_blank" style="color:var(--purple)">console.anthropic.com/keys</a> — this powers all AI analysis</div>
+      </div>
+
+      <div class="setting-row">
+        <div class="setting-label">CLOUDFLARE WORKER PROXY URL</div>
+        <input type="text" class="setting-input" id="keyProxy" placeholder="https://folio-proxy.yourname.workers.dev" oninput="saveKeys()"/>
+        <div class="setting-hint">Required to call Claude from the browser. Deploy the included <code style="color:var(--accent)">cloudflare-worker.js</code> — see setup steps below.</div>
+      </div>
+
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:14px;margin-bottom:16px">
+        <div style="font-family:var(--mono);font-size:10px;letter-spacing:2px;color:var(--yellow);margin-bottom:8px">PROXY SETUP — 3 MINUTES, FREE</div>
+        <ol style="font-family:var(--sans);font-size:12px;color:var(--text2);line-height:2;padding-left:18px">
+          <li>Go to <a href="https://workers.cloudflare.com" target="_blank" style="color:var(--accent2)">workers.cloudflare.com</a> → sign up free</li>
+          <li>Click <strong style="color:var(--text)">Create Worker</strong> → replace all code with the contents of <code style="color:var(--accent)">cloudflare-worker.js</code></li>
+          <li>Click <strong style="color:var(--text)">Deploy</strong> → copy the <code style="color:var(--accent)">.workers.dev</code> URL</li>
+          <li>Paste the URL in the field above</li>
+        </ol>
+        <div style="font-family:var(--mono);font-size:10px;color:var(--text3);margin-top:8px">Free tier: 100,000 requests/day. Your API key is never stored — it's sent directly to Anthropic on each request.</div>
+      </div>
+
       <div class="setting-row">
         <div class="setting-label">FINNHUB API KEY</div>
         <input type="password" class="setting-input" id="keyFinnhub" placeholder="paste key here…" oninput="saveKeys()"/>
-        <div class="setting-hint">Free at finnhub.io — gives news sentiment, earnings calendar, company metrics</div>
+        <div class="setting-hint">Free at <a href="https://finnhub.io/register" target="_blank" style="color:var(--accent2)">finnhub.io</a> — news sentiment, earnings calendar, company metrics</div>
       </div>
       <div class="setting-row">
         <div class="setting-label">FINANCIAL MODELING PREP KEY</div>
         <input type="password" class="setting-input" id="keyFMP" placeholder="paste key here…" oninput="saveKeys()"/>
-        <div class="setting-hint">Free at financialmodelingprep.com — gives P/E, FCF, balance sheet, income statements</div>
-      </div>
-      <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
-        <a href="https://finnhub.io/register" target="_blank" class="btn ghost sm">→ GET FINNHUB KEY</a>
-        <a href="https://financialmodelingprep.com/register" target="_blank" class="btn ghost sm">→ GET FMP KEY</a>
+        <div class="setting-hint">Free at <a href="https://financialmodelingprep.com/register" target="_blank" style="color:var(--accent2)">financialmodelingprep.com</a> — P/E, FCF, balance sheet, income statements</div>
       </div>
     </div>
 
@@ -423,7 +443,7 @@ hr.div{border:none;border-top:1px solid var(--border);margin:16px 0}
 ════════════════════════════════════════ */
 let portfolio = [];
 let dividendsReceived = [];
-let keys = { finnhub: '', fmp: '' };
+let keys = { finnhub: '', fmp: '', claudeKey: '', claudeProxy: '' };
 let profile = { age:29, horizon:20, risk:'aggressive', goal:'wealth', cur:'EUR' };
 
 const PORTFOLIO_SK = 'folio_v5';
@@ -441,8 +461,10 @@ function loadAll() {
 }
 
 function saveKeys() {
-  keys.finnhub = document.getElementById('keyFinnhub').value.trim();
-  keys.fmp     = document.getElementById('keyFMP').value.trim();
+  keys.finnhub    = document.getElementById('keyFinnhub').value.trim();
+  keys.fmp        = document.getElementById('keyFMP').value.trim();
+  keys.claudeKey  = document.getElementById('keyClaudeKey').value.trim();
+  keys.claudeProxy= document.getElementById('keyProxy').value.trim().replace(/\/$/, '');
   localStorage.setItem(KEYS_SK, JSON.stringify(keys));
   updateApiStatus();
 }
@@ -458,6 +480,7 @@ function saveProfile() {
 function updateApiStatus() {
   const bar = document.getElementById('apiStatus');
   bar.innerHTML = `
+    <span class="api-chip ${keys.claudeProxy && keys.claudeKey ? 'ok':'miss'}">${keys.claudeProxy && keys.claudeKey ? '✓':'✗'} CLAUDE</span>
     <span class="api-chip ${keys.finnhub?'ok':'miss'}">${keys.finnhub?'✓':'✗'} FINNHUB</span>
     <span class="api-chip ${keys.fmp?'ok':'miss'}">${keys.fmp?'✓':'✗'} FMP</span>
   `;
@@ -783,54 +806,44 @@ function scoreVerdict(s) {
 }
 
 /* ════════════════════════════════════════
-   CLAUDE API CALL — non-streaming (works from static GitHub Pages)
-   Uses allorigins proxy to bypass CORS on direct browser fetch
+   CLAUDE API CALL — routed through Cloudflare Worker proxy
+   The proxy handles CORS and forwards to api.anthropic.com
 ════════════════════════════════════════ */
 async function callClaude(systemPrompt, userPrompt, onChunk) {
-  const body = JSON.stringify({
-    model: 'claude-sonnet-4-20250514',
-    max_tokens: 1000,
-    system: systemPrompt,
-    messages: [{ role: 'user', content: userPrompt }]
-  });
-
-  // Try direct first (works on claude.ai preview), fall back to proxy for GitHub Pages
-  let responseText = null;
-
-  try {
-    const r = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body
-    });
-    if (!r.ok) throw new Error('HTTP ' + r.status);
-    const j = await r.json();
-    responseText = j?.content?.[0]?.text;
-  } catch {
-    // Proxy fallback
-    try {
-      const proxyUrl = 'https://api.allorigins.win/post?url=' + encodeURIComponent('https://api.anthropic.com/v1/messages');
-      const r = await fetch(proxyUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ body })
-      });
-      if (!r.ok) throw new Error('Proxy HTTP ' + r.status);
-      const w = await r.json();
-      const inner = JSON.parse(w.contents || '{}');
-      responseText = inner?.content?.[0]?.text;
-    } catch(e2) {
-      throw new Error('Claude unreachable: ' + e2.message + '. Make sure you are accessing this from claude.ai or your GitHub Pages domain.');
-    }
+  if (!keys.claudeProxy) {
+    throw new Error('No proxy URL configured. Go to Settings → Proxy URL and paste your Cloudflare Worker URL.');
+  }
+  if (!keys.claudeKey) {
+    throw new Error('No Claude API key configured. Go to Settings and paste your Anthropic API key.');
   }
 
-  if (!responseText) throw new Error('Empty response from Claude API');
+  const r = await fetch(keys.claudeProxy, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      apiKey: keys.claudeKey,
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 1000,
+      system: systemPrompt,
+      messages: [{ role: 'user', content: userPrompt }]
+    })
+  });
 
-  // Simulate typing effect — deliver text in small chunks with minimal delay
+  if (!r.ok) {
+    const errText = await r.text();
+    throw new Error('Proxy error ' + r.status + ': ' + errText.slice(0, 200));
+  }
+
+  const j = await r.json();
+  if (j.error) throw new Error('Anthropic error: ' + (j.error.message || JSON.stringify(j.error)));
+
+  const responseText = j?.content?.[0]?.text;
+  if (!responseText) throw new Error('Empty response from Claude');
+
+  // Simulate typing effect — deliver in small chunks
   const chunkSize = 6;
   for (let i = 0; i < responseText.length; i += chunkSize) {
     onChunk(responseText.slice(i, i + chunkSize));
-    // Yield to browser every 30 chunks so UI stays responsive
     if (i % (chunkSize * 30) === 0) await new Promise(r => setTimeout(r, 0));
   }
 }
@@ -1335,8 +1348,10 @@ function toast(msg, err=false) {
 loadAll();
 
 // Restore settings UI
-document.getElementById('keyFinnhub').value = keys.finnhub || '';
-document.getElementById('keyFMP').value     = keys.fmp     || '';
+document.getElementById('keyFinnhub').value   = keys.finnhub    || '';
+document.getElementById('keyFMP').value       = keys.fmp        || '';
+document.getElementById('keyClaudeKey').value = keys.claudeKey  || '';
+document.getElementById('keyProxy').value     = keys.claudeProxy|| '';
 document.getElementById('profAge').value     = profile.age;
 document.getElementById('profHorizon').value = profile.horizon;
 document.getElementById('profRisk').value    = profile.risk;
