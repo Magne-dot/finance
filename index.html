@@ -166,6 +166,7 @@
 <div class="nav-tabs">
   <div class="nav-tab act" onclick="switchView('portfolio',this)">PORTFOLIO</div>
   <div class="nav-tab" onclick="switchView('chart',this)">CHART</div>
+  <div class="nav-tab" onclick="switchView('dividends',this)">DIVIDENDS</div>
 </div>
 
 <main>
@@ -279,9 +280,82 @@
   </div>
 </div>
 
+<!-- ═══ DIVIDENDS VIEW ═══ -->
+<div class="view" id="vDividends">
+
+  <!-- DIVIDEND SUMMARY TILES -->
+  <div class="sgrid">
+    <div class="tile">
+      <div class="tlbl">Total Received</div>
+      <div class="tval pos" id="dvTotal">€ —</div>
+      <div class="tsub" id="dvTotalS">all time</div>
+    </div>
+    <div class="tile">
+      <div class="tlbl">This Year</div>
+      <div class="tval pos" id="dvYear">€ —</div>
+      <div class="tsub" id="dvYearS">2026</div>
+    </div>
+    <div class="tile">
+      <div class="tlbl">Projected Annual</div>
+      <div class="tval" id="dvProjected">€ —</div>
+      <div class="tsub">based on current holdings</div>
+    </div>
+    <div class="tile">
+      <div class="tlbl">Next Payment</div>
+      <div class="tval" id="dvNext" style="font-size:14px">—</div>
+      <div class="tsub" id="dvNextS">upcoming</div>
+    </div>
+    <div class="tile">
+      <div class="tlbl">Yield on Cost</div>
+      <div class="tval" id="dvYOC">—</div>
+      <div class="tsub">vs total invested</div>
+    </div>
+  </div>
+
+  <!-- UPCOMING PAYMENTS -->
+  <div class="sh">
+    <div class="stitle">Upcoming Payments</div>
+  </div>
+  <div class="tw" style="margin-bottom:24px">
+    <table>
+      <thead><tr>
+        <th>Position</th>
+        <th>Ex-Date</th>
+        <th>Pay Date</th>
+        <th>Per Share</th>
+        <th>Your Payout</th>
+        <th>Freq</th>
+        <th>Yield</th>
+        <th></th>
+      </tr></thead>
+      <tbody id="upcomingBody"></tbody>
+    </table>
+  </div>
+
+  <!-- RECEIVED DIVIDENDS LOG -->
+  <div class="sh">
+    <div class="stitle">Received Dividends</div>
+    <button class="btn sm" onclick="openAddDiv()">+ LOG DIVIDEND</button>
+  </div>
+  <div class="tw">
+    <table>
+      <thead><tr>
+        <th>Position</th>
+        <th>Pay Date</th>
+        <th>Per Share</th>
+        <th>Shares</th>
+        <th>Total</th>
+        <th>Type</th>
+        <th></th>
+      </tr></thead>
+      <tbody id="receivedBody"></tbody>
+    </table>
+  </div>
+</div>
+
 </main>
 
-<footer>FOLIO v0.4 — YAHOO FINANCE + MORNINGSTAR — NOT FINANCIAL ADVICE</footer>
+<footer>FOLIO v0.5 — YAHOO FINANCE + MORNINGSTAR — NOT FINANCIAL ADVICE</footer>
 
 <!-- ADD MODAL -->
 <div class="mo" id="addMo">
@@ -336,6 +410,45 @@
   </div>
 </div>
 
+<!-- ADD DIVIDEND MODAL -->
+<div class="mo" id="divMo">
+  <div class="md">
+    <div class="mh"><div class="mt" id="divMoTitle">LOG DIVIDEND</div><button class="mc" onclick="closeMo('divMo')">×</button></div>
+    <div class="mb">
+      <div class="fr">
+        <label>Position</label>
+        <select id="dPos"></select>
+      </div>
+      <div class="f2">
+        <div class="fr" style="margin-bottom:0"><label>Pay Date</label><input type="date" id="dDate"/></div>
+        <div class="fr" style="margin-bottom:0"><label>Ex-Date</label><input type="date" id="dExDate"/></div>
+      </div>
+      <div class="f2" style="margin-top:16px">
+        <div class="fr" style="margin-bottom:0"><label>Per Share / Unit €</label><input type="number" id="dPerShare" placeholder="0.07" min="0" step="any"/></div>
+        <div class="fr" style="margin-bottom:0"><label>Shares at Ex-Date</label><input type="number" id="dShares" placeholder="42" min="0" step="any"/></div>
+      </div>
+      <div class="fr" style="margin-top:16px">
+        <label>Total Received € <span style="color:var(--text3)">(auto-calculated, override if needed)</span></label>
+        <input type="number" id="dTotal" placeholder="0.00" step="any"/>
+      </div>
+      <div class="fr">
+        <label>Type</label>
+        <select id="dType">
+          <option value="cash">Cash Dividend</option>
+          <option value="special">Special Dividend</option>
+          <option value="reinvested">Reinvested (DRIP)</option>
+          <option value="return_capital">Return of Capital</option>
+        </select>
+      </div>
+      <div class="fr">
+        <label>Notes</label>
+        <input id="dNotes" placeholder="optional notes"/>
+      </div>
+    </div>
+    <div class="mft"><button class="btn ghost" onclick="closeMo('divMo')">CANCEL</button><button class="btn" id="divSaveBtn" onclick="saveDiv()">SAVE</button></div>
+  </div>
+</div>
+
 <div id="toast"></div>
 
 <script>
@@ -346,20 +459,30 @@ let P = [], editId = null, curType = 'stock';
 let modes = { portfolio:'abs', day:'abs', total:'abs' };
 let accF = 'ALL';
 const FX = { EUR:1, USD:.92, GBP:1.17 };
-const SK = 'folio_v4';
+const SK = 'folio_v5';
+
+/* Dividends state */
+// received: [{id, posId, ticker, name, payDate, exDate, perShare, shares, total, type, notes}]
+// upcoming: [{posId, ticker, name, exDate, payDate, perShare, freq, annualYield}]  — seeded + auto-refreshed
+let dividendsReceived = [];
+let dividendsUpcoming = [];
 
 /* Chart state */
-let portfolioHistory = []; // [{date, value, costBasis, events:[]}]
+let portfolioHistory = [];
 let chartRange = '1M';
 let chartInst = null, allocInst = null;
 
-function save() { try { localStorage.setItem(SK, JSON.stringify({P, portfolioHistory})); } catch(e){} }
+function save() {
+  try { localStorage.setItem(SK, JSON.stringify({P, portfolioHistory, dividendsReceived, dividendsUpcoming})); } catch(e){}
+}
 function load() {
   try {
     const d = JSON.parse(localStorage.getItem(SK)||'{}');
     P = d.P || [];
     portfolioHistory = d.portfolioHistory || [];
-  } catch { P=[]; portfolioHistory=[]; }
+    dividendsReceived = d.dividendsReceived || [];
+    dividendsUpcoming = d.dividendsUpcoming || [];
+  } catch { P=[]; portfolioHistory=[]; dividendsReceived=[]; dividendsUpcoming=[]; }
 }
 
 /* ═══════════════════════════════════════
@@ -385,6 +508,7 @@ function switchView(name, el) {
   document.getElementById('v'+name.charAt(0).toUpperCase()+name.slice(1)).classList.add('act');
   el.classList.add('act');
   if (name === 'chart') renderChart();
+  if (name === 'dividends') renderDividends();
 }
 
 /* ═══════════════════════════════════════
@@ -534,6 +658,7 @@ async function refreshAll(){
   document.getElementById('tRef').textContent=new Date().toLocaleTimeString('nl-NL',{hour12:false});
   document.getElementById('rIcon').classList.remove('spin');
   toast('Prices updated');
+  maybeRefreshDividends();
 }
 
 /* ═══════════════════════════════════════
@@ -848,8 +973,264 @@ async function doImport(){
    TOAST / KEYS
 ═══════════════════════════════════════ */
 function toast(msg,err=false){const e=document.getElementById('toast');e.textContent=msg;e.className='show'+(err?' err':'');clearTimeout(e._t);e._t=setTimeout(()=>e.className='',3500);}
-document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeMo('addMo');closeMo('impMo');}if(e.key==='Enter'&&document.getElementById('addMo').classList.contains('open'))doSave();});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeMo('addMo');closeMo('impMo');closeMo('divMo');}if(e.key==='Enter'&&document.getElementById('addMo').classList.contains('open'))doSave();});
 setInterval(()=>{if(P.length)refreshAll();},3*60*1000);
+
+/* ═══════════════════════════════════════
+   DIVIDENDS
+═══════════════════════════════════════ */
+
+// Auto-fetch dividend info from Yahoo Finance (trailingAnnualDividendRate + dividendDate)
+async function fetchDivInfo(ticker) {
+  const url = `https://query1.finance.yahoo.com/v10/finance/quoteSummary/${encodeURIComponent(ticker)}?modules=summaryDetail,calendarEvents`;
+  const tryFetch = async (u) => {
+    const r = await fetch(u, {mode:'cors', cache:'no-store'});
+    if (!r.ok) throw new Error('HTTP '+r.status);
+    return r.json();
+  };
+  try {
+    const j = await tryFetch(url);
+    return parseDivInfo(j, ticker);
+  } catch {
+    try {
+      const proxy = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
+      const r = await fetch(proxy); const w = await r.json();
+      const j = JSON.parse(w.contents);
+      return parseDivInfo(j, ticker);
+    } catch { return null; }
+  }
+}
+
+function parseDivInfo(j, ticker) {
+  try {
+    const sd = j.quoteSummary.result[0].summaryDetail;
+    const cal = j.quoteSummary.result[0].calendarEvents;
+    const annualRate = sd.trailingAnnualDividendRate?.raw || 0;
+    const yld = sd.trailingAnnualDividendYield?.raw || 0;
+    const exDateTs = sd.exDividendDate?.raw;
+    const payDates = cal?.dividendDate?.raw;
+    return {
+      annualRate,
+      yld,
+      exDate: exDateTs ? new Date(exDateTs*1000).toISOString().split('T')[0] : null,
+      payDate: payDates  ? new Date(payDates*1000).toISOString().split('T')[0] : null,
+    };
+  } catch { return null; }
+}
+
+// Refresh upcoming dividends for all distributing positions
+async function refreshDividends() {
+  const stockPos = P.filter(p => p.type === 'stock' && p.ticker);
+  for (const pos of stockPos) {
+    const info = await fetchDivInfo(pos.ticker);
+    if (!info || !info.annualRate) continue;
+    const perShare = info.annualRate / 4; // assume quarterly if unknown
+    // Update or insert in upcoming
+    const idx = dividendsUpcoming.findIndex(d => d.posId === pos.id);
+    const entry = {
+      posId: pos.id, ticker: pos.ticker,
+      name: pos.name || pos.ticker,
+      exDate: info.exDate, payDate: info.payDate,
+      perShare: parseFloat(perShare.toFixed(4)),
+      annualRate: info.annualRate,
+      annualYield: info.yld,
+      freq: 'quarterly', shares: eQty(pos)
+    };
+    if (idx >= 0) dividendsUpcoming[idx] = entry;
+    else dividendsUpcoming.push(entry);
+  }
+  save();
+  renderDividends();
+}
+
+// Called after refreshAll to also update dividend data
+async function maybeRefreshDividends() {
+  // Only refresh dividend metadata once per day
+  const today = new Date().toISOString().split('T')[0];
+  const lastDivRefresh = localStorage.getItem('folio_div_refresh');
+  if (lastDivRefresh === today) return;
+  await refreshDividends();
+  localStorage.setItem('folio_div_refresh', today);
+}
+
+// Dividend summary stats
+function divStats() {
+  const now = new Date();
+  const yearStr = now.getFullYear().toString();
+  const totalReceived = dividendsReceived.reduce((s,d) => s + (d.total||0), 0);
+  const thisYear = dividendsReceived.filter(d => (d.payDate||'').startsWith(yearStr)).reduce((s,d) => s+(d.total||0),0);
+
+  // Projected annual from upcoming data
+  let projected = 0;
+  dividendsUpcoming.forEach(u => {
+    const pos = P.find(p => p.id === u.posId);
+    if (!pos) return;
+    const q = eQty(pos);
+    projected += (u.annualRate || 0) * q;
+  });
+
+  // Yield on cost
+  const totalCost = P.reduce((s,p) => s + toE(eCB(p), p.cur), 0);
+  const yoc = totalCost ? projected / totalCost * 100 : 0;
+
+  // Next payment
+  const upcoming = dividendsUpcoming
+    .filter(u => u.payDate && u.payDate >= now.toISOString().split('T')[0])
+    .sort((a,b) => a.payDate.localeCompare(b.payDate));
+  const next = upcoming[0] || null;
+
+  return { totalReceived, thisYear, projected, yoc, next };
+}
+
+function renderDividends() {
+  const stats = divStats();
+
+  // Summary tiles
+  document.getElementById('dvTotal').textContent = fe(stats.totalReceived);
+  document.getElementById('dvTotalS').textContent = `${dividendsReceived.length} payment${dividendsReceived.length!==1?'s':''} logged`;
+  document.getElementById('dvYear').textContent = fe(stats.thisYear);
+  document.getElementById('dvYearS').textContent = new Date().getFullYear();
+  document.getElementById('dvProjected').textContent = fe(stats.projected);
+  document.getElementById('dvYOC').textContent = fpc(stats.yoc);
+
+  if (stats.next) {
+    const pos = P.find(p=>p.id===stats.next.posId);
+    const q = pos ? eQty(pos) : stats.next.shares || 0;
+    const payout = stats.next.perShare * q;
+    document.getElementById('dvNext').textContent = `${stats.next.ticker} — ${fe(payout)}`;
+    document.getElementById('dvNextS').textContent = `Pay: ${stats.next.payDate} · Ex: ${stats.next.exDate||'—'}`;
+  } else {
+    document.getElementById('dvNext').textContent = '—';
+    document.getElementById('dvNextS').textContent = 'no upcoming data';
+  }
+
+  // Upcoming table
+  const ub = document.getElementById('upcomingBody');
+  if (!dividendsUpcoming.length) {
+    ub.innerHTML = `<tr><td colspan="8" style="text-align:center;color:var(--text3);font-family:var(--mono);font-size:11px;padding:24px">No upcoming dividend data — refresh prices to fetch latest.</td></tr>`;
+  } else {
+    const today = new Date().toISOString().split('T')[0];
+    const sorted = [...dividendsUpcoming].sort((a,b) => (a.payDate||'9999').localeCompare(b.payDate||'9999'));
+    ub.innerHTML = sorted.map(u => {
+      const pos = P.find(p=>p.id===u.posId);
+      const q = pos ? eQty(pos) : u.shares||0;
+      const payout = u.perShare * q;
+      const isUpcoming = u.payDate && u.payDate >= today;
+      const isSoon = u.payDate && u.payDate <= new Date(Date.now()+14*864e5).toISOString().split('T')[0];
+      const rowStyle = isSoon && isUpcoming ? 'background:rgba(0,212,170,.04)' : '';
+      const payLabel = isUpcoming
+        ? `<span style="color:var(--green)">${u.payDate||'—'}</span>`
+        : `<span style="color:var(--text3)">${u.payDate||'—'}</span>`;
+      const exLabel = u.exDate
+        ? (u.exDate >= today ? `<span style="color:var(--yellow)">${u.exDate}</span>` : `<span style="color:var(--text3)">${u.exDate}</span>`)
+        : '—';
+      const yldDisplay = u.annualYield ? fpc(u.annualYield*100) : '—';
+      return `<tr style="${rowStyle}">
+        <td><span class="tk">${u.ticker}</span><span class="tn">${u.name||''}</span></td>
+        <td>${exLabel}</td>
+        <td>${payLabel}</td>
+        <td class="p">€ ${u.perShare.toFixed(4)}</td>
+        <td class="p">${fe(payout)}</td>
+        <td style="color:var(--text3)">${u.freq||'quarterly'}</td>
+        <td>${yldDisplay}</td>
+        <td><button class="ib" style="font-size:10px;padding:2px 6px" onclick="preLogDiv('${u.posId}')">+ LOG</button></td>
+      </tr>`;
+    }).join('');
+  }
+
+  // Received table
+  const rb = document.getElementById('receivedBody');
+  if (!dividendsReceived.length) {
+    rb.innerHTML = `<tr><td colspan="7" style="text-align:center;color:var(--text3);font-family:var(--mono);font-size:11px;padding:24px">No dividends logged yet.</td></tr>`;
+  } else {
+    const sorted = [...dividendsReceived].sort((a,b) => b.payDate.localeCompare(a.payDate));
+    rb.innerHTML = sorted.map(d => {
+      const typeColors = {cash:'var(--green)',special:'var(--yellow)',reinvested:'var(--accent2)',return_capital:'var(--orange)'};
+      const typeLabels = {cash:'CASH',special:'SPECIAL',reinvested:'DRIP',return_capital:'ROC'};
+      const tcolor = typeColors[d.type]||'var(--text3)';
+      return `<tr>
+        <td><span class="tk">${d.ticker||'—'}</span><span class="tn">${d.name||''}</span></td>
+        <td>${d.payDate||'—'}</td>
+        <td class="p">€ ${(d.perShare||0).toFixed(4)}</td>
+        <td>${(d.shares||0).toLocaleString('nl-NL',{maximumFractionDigits:4})}</td>
+        <td class="p">${fe(d.total)}</td>
+        <td><span style="font-family:var(--mono);font-size:9px;color:${tcolor};border:1px solid ${tcolor};padding:1px 4px;border-radius:2px">${typeLabels[d.type]||d.type}</span></td>
+        <td onclick="event.stopPropagation()"><div class="abts"><button class="ib" onclick="delDiv('${d.id}')">✕</button></div></td>
+      </tr>`;
+    }).join('');
+  }
+}
+
+// Open add-dividend modal, optionally pre-filled from an upcoming entry
+function openAddDiv(posId) {
+  document.getElementById('divMoTitle').textContent = 'LOG DIVIDEND';
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('dDate').value = today;
+  document.getElementById('dExDate').value = '';
+  document.getElementById('dPerShare').value = '';
+  document.getElementById('dShares').value = '';
+  document.getElementById('dTotal').value = '';
+  document.getElementById('dType').value = 'cash';
+  document.getElementById('dNotes').value = '';
+  // Populate position dropdown
+  const sel = document.getElementById('dPos');
+  sel.innerHTML = P.map(p=>`<option value="${p.id}">${p.ticker||p.isin} — ${p.name||''}</option>`).join('');
+  if (posId) sel.value = posId;
+  // Auto-fill shares
+  sel.onchange = () => {
+    const p = P.find(x=>x.id===sel.value);
+    if (p) document.getElementById('dShares').value = eQty(p).toFixed(4);
+    recalcDivTotal();
+  };
+  sel.onchange();
+  openMo('divMo');
+}
+
+function preLogDiv(posId) {
+  openAddDiv(posId);
+  const u = dividendsUpcoming.find(x=>x.posId===posId);
+  if (u) {
+    if (u.payDate) document.getElementById('dDate').value = u.payDate;
+    if (u.exDate)  document.getElementById('dExDate').value = u.exDate;
+    document.getElementById('dPerShare').value = u.perShare;
+    recalcDivTotal();
+  }
+}
+
+function recalcDivTotal() {
+  const ps = parseFloat(document.getElementById('dPerShare').value)||0;
+  const sh = parseFloat(document.getElementById('dShares').value)||0;
+  if (ps && sh) document.getElementById('dTotal').value = (ps*sh).toFixed(4);
+}
+document.getElementById('dPerShare').addEventListener('input', recalcDivTotal);
+document.getElementById('dShares').addEventListener('input', recalcDivTotal);
+
+function saveDiv() {
+  const posId = document.getElementById('dPos').value;
+  const pos = P.find(p=>p.id===posId);
+  const payDate = document.getElementById('dDate').value;
+  const exDate  = document.getElementById('dExDate').value;
+  const perShare = parseFloat(document.getElementById('dPerShare').value)||0;
+  const shares   = parseFloat(document.getElementById('dShares').value)||0;
+  const total    = parseFloat(document.getElementById('dTotal').value)||(perShare*shares);
+  const type     = document.getElementById('dType').value;
+  const notes    = document.getElementById('dNotes').value.trim();
+  if (!posId || !payDate || total <= 0) { toast('Fill position, date and amount', true); return; }
+  dividendsReceived.push({
+    id: 'd'+Date.now(),
+    posId, ticker: pos?.ticker||pos?.isin||'', name: pos?.name||'',
+    payDate, exDate, perShare, shares, total, type, notes
+  });
+  save(); closeMo('divMo'); renderDividends();
+  toast(`Dividend logged: ${fe(total)}`);
+}
+
+function delDiv(id) {
+  if (!confirm('Remove this dividend entry?')) return;
+  dividendsReceived = dividendsReceived.filter(d=>d.id!==id);
+  save(); renderDividends();
+  toast('Dividend removed');
+}
 
 /* ═══════════════════════════════════════
    INIT  —  SEED ALL STARTING POSITIONS
@@ -919,8 +1300,28 @@ if(P.length===0){
     events:[{type:'buy',label:'Initial portfolio baseline'}]
   });
 
+  // Seed known upcoming dividends (from research March 2026)
+  dividendsUpcoming = [
+    { posId:'idvy', ticker:'IDVY.AS', name:'iShares Euro Dividend UCITS ETF',
+      exDate:'2026-03-13', payDate:'2026-03-26', perShare:0.07,
+      annualRate:0.28, annualYield:0.0426, freq:'quarterly', shares:42 },
+    { posId:'vusa', ticker:'VUSA.AS', name:'Vanguard S&P 500 UCITS ETF',
+      exDate:'2026-03-20', payDate:'2026-04-02', perShare:0.30,
+      annualRate:1.09, annualYield:0.0092, freq:'quarterly', shares:1.3658 },
+    { posId:'vhyl', ticker:'VHYL.AS', name:'Vanguard FTSE All-World High Div Yield UCITS ETF',
+      exDate:'2026-03-20', payDate:'2026-04-02', perShare:0.40,
+      annualRate:1.60, annualYield:0.0262, freq:'quarterly', shares:5.3473 },
+  ];
+
+  // Seed known received dividend: €1.00 mentioned by user
+  dividendsReceived = [
+    { id:'div_seed_1', posId:'idvy', ticker:'IDVY.AS', name:'iShares Euro Dividend UCITS ETF',
+      payDate:'2025-12-24', exDate:'2025-12-11', perShare:0.05, shares:42, total:2.10,
+      type:'cash', notes:'Q4 2025 — seeded from ABN statement' },
+  ];
+
   save();
-  log('First run — seeded 4 positions. Total baseline: €5021.76, Cost: €4646.76','ok');
+  log('First run — seeded 4 positions + dividend data.','ok');
 }
 
 // MIGRATION: fix the since date on the ABN fund if it was saved with the old
