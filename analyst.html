@@ -783,47 +783,55 @@ function scoreVerdict(s) {
 }
 
 /* ════════════════════════════════════════
-   CLAUDE API CALL — streaming narrative
+   CLAUDE API CALL — non-streaming (works from static GitHub Pages)
+   Uses allorigins proxy to bypass CORS on direct browser fetch
 ════════════════════════════════════════ */
 async function callClaude(systemPrompt, userPrompt, onChunk) {
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 1000,
-      stream: true,
-      system: systemPrompt,
-      messages: [{ role: 'user', content: userPrompt }]
-    })
+  const body = JSON.stringify({
+    model: 'claude-sonnet-4-20250514',
+    max_tokens: 1000,
+    system: systemPrompt,
+    messages: [{ role: 'user', content: userPrompt }]
   });
 
-  if (!response.ok) {
-    const err = await response.text();
-    throw new Error('Claude API: ' + err);
+  // Try direct first (works on claude.ai preview), fall back to proxy for GitHub Pages
+  let responseText = null;
+
+  try {
+    const r = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body
+    });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const j = await r.json();
+    responseText = j?.content?.[0]?.text;
+  } catch {
+    // Proxy fallback
+    try {
+      const proxyUrl = 'https://api.allorigins.win/post?url=' + encodeURIComponent('https://api.anthropic.com/v1/messages');
+      const r = await fetch(proxyUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ body })
+      });
+      if (!r.ok) throw new Error('Proxy HTTP ' + r.status);
+      const w = await r.json();
+      const inner = JSON.parse(w.contents || '{}');
+      responseText = inner?.content?.[0]?.text;
+    } catch(e2) {
+      throw new Error('Claude unreachable: ' + e2.message + '. Make sure you are accessing this from claude.ai or your GitHub Pages domain.');
+    }
   }
 
-  const reader = response.body.getReader();
-  const decoder = new TextDecoder();
-  let buffer = '';
+  if (!responseText) throw new Error('Empty response from Claude API');
 
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    buffer += decoder.decode(value, { stream: true });
-    const lines = buffer.split('\n');
-    buffer = lines.pop();
-    for (const line of lines) {
-      if (!line.startsWith('data: ')) continue;
-      const data = line.slice(6);
-      if (data === '[DONE]') return;
-      try {
-        const j = JSON.parse(data);
-        if (j.type === 'content_block_delta' && j.delta?.text) {
-          onChunk(j.delta.text);
-        }
-      } catch {}
-    }
+  // Simulate typing effect — deliver text in small chunks with minimal delay
+  const chunkSize = 6;
+  for (let i = 0; i < responseText.length; i += chunkSize) {
+    onChunk(responseText.slice(i, i + chunkSize));
+    // Yield to browser every 30 chunks so UI stays responsive
+    if (i % (chunkSize * 30) === 0) await new Promise(r => setTimeout(r, 0));
   }
 }
 
@@ -896,10 +904,8 @@ async function runAnalysis() {
     document.getElementById('progressMsg').textContent = 'Generating AI analysis…';
     document.getElementById('progressBar').style.width = '80%';
 
-    // Build the report shell
+    // Build the report shell — this replaces out.innerHTML so progressBar is gone after this
     out.innerHTML = buildReportShell(ticker, data, scores, verdict);
-
-    document.getElementById('progressBar').style.width = '90%';
 
     // Stream AI narrative
     const narrativeEl = document.getElementById('aiNarrativeText');
@@ -917,7 +923,6 @@ async function runAnalysis() {
 
     // Remove cursor
     narrativeEl.innerHTML = formatNarrative(full);
-    document.getElementById('progressBar').style.width = '100%';
 
     // Cache this analysis
     const cache = JSON.parse(localStorage.getItem('folio_analysis_cache')||'{}');
@@ -1307,7 +1312,6 @@ Be specific. Name actual tickers for replacements. Acknowledge that the portfoli
     });
 
     narrativeEl.innerHTML = formatNarrative(full);
-    document.getElementById('advisorProgress') && (document.getElementById('advisorProgress').style.width = '100%');
 
   } catch(e) {
     out.innerHTML = `<div class="card red-accent"><p style="font-family:var(--mono);color:var(--red)">Error: ${e.message}</p></div>`;
